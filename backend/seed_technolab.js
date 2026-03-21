@@ -195,3 +195,66 @@ async function seed() {
 }
 
 seed().catch(e => { console.error(e.message); pool.end(); });
+
+// ── Données supplémentaires cours du soir ──
+async function seedSoir() {
+  const pool2 = new Pool({
+    host: 'localhost', port: 5432,
+    database: 'unigest', user: 'unigest',
+    password: process.env.DB_PASSWORD,
+  });
+
+  const filieres = await pool2.query('SELECT * FROM filieres ORDER BY id');
+  const etuHash = await bcrypt.hash('etu123', 10);
+
+  const etudiantsSoir = [
+    { name:'Aliou Diarra',       filiere:'GLT-L1',         session:'soir' },
+    { name:'Mariam Touré',       filiere:'GLT-L1',         session:'soir' },
+    { name:'Sidi Coulibaly',     filiere:'GLT-L1',         session:'soir' },
+    { name:'Fatoumata Koné',     filiere:'INFO GESTION-L1', session:'soir' },
+    { name:'Moussa Traoré',      filiere:'INFO GESTION-L1', session:'soir' },
+    { name:'Aminata Sanogo',     filiere:'INFO GESTION-L1', session:'soir' },
+    { name:'Oumar Keïta',        filiere:'AST-L1',         session:'soir' },
+    { name:'Kadidiatou Bah',     filiere:'AST-L1',         session:'soir' },
+    { name:'Mamadou Sissoko',    filiere:'GLT-L2',         session:'soir' },
+    { name:'Aïcha Camara',       filiere:'GLT-L2',         session:'soir' },
+  ];
+
+  let count = 30;
+  for (const etu of etudiantsSoir) {
+    const fil = filieres.rows.find(f => f.code === etu.filiere);
+    if (!fil) continue;
+    count++;
+    const matricule = etu.filiere.replace(' ','-').replace(' ','-') + '-25-' + String(count).padStart(3,'0');
+    const r = await pool2.query(
+      `INSERT INTO etudiants (name, filiere_id, annee_academique, session, matricule)
+       VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING RETURNING id`,
+      [etu.name, fil.id, '2025/2026', etu.session, matricule]
+    );
+    if (r.rows.length) {
+      const userId = 'ETUS' + String(count).padStart(4,'0');
+      await pool2.query(
+        'INSERT INTO users (id, password, name, role, etudiant_id) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
+        [userId, etuHash, etu.name, 'etudiant', r.rows[0].id]
+      );
+    }
+  }
+  console.log('Etudiants soir créés:', etudiantsSoir.length);
+
+  // Groupes soir
+  const fil_glt = filieres.rows.find(f => f.code === 'GLT-L1');
+  if (fil_glt) {
+    await pool2.query(
+      `INSERT INTO groupes (nom, type, filiere_id) VALUES
+       ('Groupe Soir A', 'TD', $1),
+       ('Groupe Soir B', 'TD', $1)
+       ON CONFLICT DO NOTHING`,
+      [fil_glt.id]
+    );
+    console.log('Groupes soir créés');
+  }
+
+  pool2.end();
+}
+
+seedSoir().catch(e => console.error(e.message));
