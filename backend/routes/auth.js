@@ -1,3 +1,4 @@
+const { logAudit } = require('../middleware/audit');
 const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
@@ -34,6 +35,7 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '7d' }
     );
+    await logAudit(req, 'LOGIN', 'users', user.id, { role: user.role });
     res.json({ token, user: {
       id: user.id, role: user.role, name: user.name,
       profId: user.prof_id, etudiantId: user.etudiant_id

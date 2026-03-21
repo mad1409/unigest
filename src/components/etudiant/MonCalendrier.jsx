@@ -1,0 +1,197 @@
+
+import { useState, useMemo } from "react";
+
+const TYPES_EVENEMENT = [
+  { value:"rentree",      label:"Rentree academique",  color:"#34d399" },
+  { value:"examen",       label:"Examens",             color:"#f0c040" },
+  { value:"deliberation", label:"Deliberation",        color:"#34d399" },
+  { value:"vacances",     label:"Vacances",            color:"#38bdf8" },
+  { value:"inscription",  label:"Inscriptions",        color:"#fb923c" },
+  { value:"autre",        label:"Autre evenement",     color:"#94a3b8" },
+];
+
+const MOIS = ["Janvier","Fevrier","Mars","Avril","Mai","Juin",
+               "Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
+
+export default function MonCalendrier({ data }) {
+  const annee = data.parametres?.anneeActive || "2025/2026";
+  const evenements = (() => {
+    try { return JSON.parse(localStorage.getItem("calendrier_"+annee) || "[]"); }
+    catch { return []; }
+  })();
+
+  const [moisActif, setMoisActif] = useState(new Date().getMonth());
+
+  const evtTries = useMemo(() =>
+    [...evenements].sort((a,b) => new Date(a.dateDebut) - new Date(b.dateDebut)),
+    [evenements]
+  );
+
+  const evtsMois = useMemo(() =>
+    evtTries.filter(e => new Date(e.dateDebut).getMonth() === moisActif),
+    [evtTries, moisActif]
+  );
+
+  function getType(type) {
+    return TYPES_EVENEMENT.find(t => t.value === type) || TYPES_EVENEMENT[5];
+  }
+
+  function formatDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("fr-FR", {day:"2-digit",month:"short",year:"numeric"});
+  }
+
+  function joursRestants(dateDebut) {
+    const diff = Math.ceil((new Date(dateDebut) - new Date()) / (1000*60*60*24));
+    if (diff < 0) return null;
+    if (diff === 0) return "Aujourd'hui";
+    if (diff === 1) return "Demain";
+    return "Dans "+diff+" jours";
+  }
+
+  // Prochains événements
+  const prochains = evtTries.filter(e => {
+    const diff = Math.ceil((new Date(e.dateDebut) - new Date()) / (1000*60*60*24));
+    return diff >= 0 && diff <= 30;
+  });
+
+  return (
+    <div>
+      <div style={{marginBottom:24}}>
+        <h2 style={{fontFamily:"'Lora',serif",fontSize:24,fontWeight:700,color:"#34d399"}}>
+          Calendrier Academique
+        </h2>
+        <p style={{color:"var(--text2)",fontSize:13,marginTop:4}}>
+          Annee {annee}
+        </p>
+      </div>
+
+      {/* Prochains événements */}
+      {prochains.length > 0 && (
+        <div style={{
+          background:"rgba(52,211,153,0.06)",border:"1px solid rgba(52,211,153,0.2)",
+          borderRadius:12,padding:"16px 18px",marginBottom:20,
+        }}>
+          <div style={{fontSize:12,fontWeight:700,color:"#34d399",marginBottom:12,
+            textTransform:"uppercase",letterSpacing:1}}>
+            Prochains evenements (30 jours)
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {prochains.map(e => {
+              const t  = getType(e.type);
+              const jr = joursRestants(e.dateDebut);
+              return (
+                <div key={e.id} style={{
+                  display:"flex",alignItems:"center",gap:12,
+                  padding:"10px 14px",
+                  background:"rgba(255,255,255,0.03)",borderRadius:8,
+                  borderLeft:"3px solid "+t.color,
+                }}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,color:"var(--text)",fontSize:13}}>{e.titre}</div>
+                    <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>
+                      {formatDate(e.dateDebut)}
+                      {e.dateFin && e.dateFin!==e.dateDebut ? " → "+formatDate(e.dateFin) : ""}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                    <span style={{
+                      background:t.color+"18",border:"1px solid "+t.color+"35",
+                      borderRadius:5,padding:"2px 8px",fontSize:10,color:t.color,fontWeight:700,
+                    }}>{t.label}</span>
+                    {jr && <span style={{fontSize:11,color:"#f0c040",fontWeight:600}}>{jr}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Navigation mois */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {MOIS.map((m,i) => {
+          const nbEvts = evtTries.filter(e => new Date(e.dateDebut).getMonth() === i).length;
+          return (
+            <button key={i} onClick={()=>setMoisActif(i)} style={{
+              padding:"7px 12px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",
+              background:moisActif===i?"rgba(52,211,153,0.15)":"rgba(255,255,255,0.04)",
+              border:moisActif===i?"1.5px solid rgba(52,211,153,0.5)":"1px solid var(--border)",
+              color:moisActif===i?"#34d399":"var(--text2)",
+              position:"relative",
+            }}>
+              {m.slice(0,3)}
+              {nbEvts > 0 && (
+                <span style={{
+                  position:"absolute",top:-4,right:-4,
+                  background:"#34d399",color:"#fff",
+                  borderRadius:"50%",width:16,height:16,
+                  fontSize:9,fontWeight:900,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                }}>{nbEvts}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Événements du mois */}
+      <div style={{fontSize:15,fontWeight:700,color:"var(--text)",marginBottom:12}}>
+        {MOIS[moisActif]}
+      </div>
+
+      {evtsMois.length === 0 ? (
+        <div style={{
+          textAlign:"center",padding:"50px",color:"var(--text3)",
+          background:"var(--bg2)",borderRadius:14,border:"1px solid var(--border)",
+        }}>
+          Aucun evenement en {MOIS[moisActif]}
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {evtsMois.map(e => {
+            const t   = getType(e.type);
+            const jr  = joursRestants(e.dateDebut);
+            const past = new Date(e.dateDebut) < new Date();
+            return (
+              <div key={e.id} style={{
+                background:"var(--bg2)",border:"1px solid var(--border)",
+                borderLeft:"4px solid "+(past?"#374151":t.color),
+                borderRadius:10,padding:"14px 18px",
+                opacity:past?0.6:1,
+              }}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                  <span style={{
+                    background:t.color+"18",border:"1px solid "+t.color+"35",
+                    borderRadius:5,padding:"2px 8px",fontSize:10,color:t.color,fontWeight:700,
+                  }}>{t.label}</span>
+                  {jr && !past && <span style={{fontSize:11,color:"#f0c040",fontWeight:600}}>{jr}</span>}
+                  {past && <span style={{fontSize:10,color:"var(--text3)"}}>Passe</span>}
+                </div>
+                <div style={{fontWeight:700,color:"var(--text)",fontSize:14,marginBottom:4}}>
+                  {e.titre}
+                </div>
+                <div style={{fontSize:12,color:"var(--text2)"}}>
+                  {formatDate(e.dateDebut)}
+                  {e.dateFin && e.dateFin!==e.dateDebut ? " → "+formatDate(e.dateFin) : ""}
+                </div>
+                {e.description && (
+                  <div style={{fontSize:12,color:"var(--text3)",marginTop:6}}>{e.description}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {evenements.length === 0 && (
+        <div style={{
+          textAlign:"center",padding:"60px",color:"var(--text3)",
+          background:"var(--bg2)",borderRadius:14,border:"1px solid var(--border)",marginTop:20,
+        }}>
+          Aucun evenement dans le calendrier pour cette annee
+        </div>
+      )}
+    </div>
+  );
+}

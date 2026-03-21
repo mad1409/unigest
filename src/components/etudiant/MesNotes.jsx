@@ -32,7 +32,7 @@ export default function MesNotes({ etudiant, data }) {
     <div>
       {/* Header */}
       <div style={{marginBottom:24}}>
-        <h2 style={{fontFamily:"'Lora',serif",fontSize:24,fontWeight:700,color:"#a78bfa"}}>Mes Notes</h2>
+        <h2 style={{fontFamily:"'Lora',serif",fontSize:24,fontWeight:700,color:"#34d399"}}>Mes Notes</h2>
         <p style={{color:"var(--text2)",fontSize:13,marginTop:5}}>
           {data.filieres.find(f=>f.id===filiereId)?.name||"—"}
         </p>
@@ -44,9 +44,9 @@ export default function MesNotes({ etudiant, data }) {
           {semestres.map(s => (
             <button key={s} onClick={()=>setSelectedSemestre(s)} style={{
               padding:"8px 18px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",
-              background:selectedSemestre===s?"rgba(167,139,250,0.15)":"rgba(255,255,255,0.04)",
-              border:selectedSemestre===s?"1.5px solid rgba(167,139,250,0.6)":"1px solid var(--border)",
-              color:selectedSemestre===s?"#a78bfa":"var(--text2)",
+              background:selectedSemestre===s?"rgba(52,211,153,0.15)":"rgba(255,255,255,0.04)",
+              border:selectedSemestre===s?"1.5px solid rgba(52,211,153,0.6)":"1px solid var(--border)",
+              color:selectedSemestre===s?"#34d399":"var(--text2)",
             }}>Semestre {s}</button>
           ))}
         </div>
@@ -55,7 +55,7 @@ export default function MesNotes({ etudiant, data }) {
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:24}}>
         {[
-          ["Moyenne", moyGen!==null?Number(moyGen).toFixed(2)+" /20":"—", mentionGen?.color||"#a78bfa"],
+          ["Moyenne", moyGen!==null?Number(moyGen).toFixed(2)+" /20":"—", mentionGen?.color||"#34d399"],
           ["Credits", creditsVal+" / "+totalCr, "#34d399"],
           ["Appreciation", appreciation||"—", "#f0c040"],
         ].map(([l,v,c]) => (
@@ -82,7 +82,7 @@ export default function MesNotes({ etudiant, data }) {
             {/* Header UE */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <div>
-                <span style={{color:"#a78bfa",fontWeight:700,fontSize:14}}>{ue.code}</span>
+                <span style={{color:"#34d399",fontWeight:700,fontSize:14}}>{ue.code}</span>
                 <span style={{color:"var(--text2)",fontSize:13,marginLeft:8}}>{ue.intitule}</span>
                 <span style={{marginLeft:8,background:"rgba(56,189,248,0.1)",border:"1px solid rgba(56,189,248,0.2)",borderRadius:5,padding:"1px 7px",fontSize:11,color:"#38bdf8"}}>
                   {parseFloat(ue.creditUE||ue.credit_ue||1)} cr.

@@ -30,10 +30,10 @@ export default function Bulletin({ etudiant, data }) {
       {/* Bouton imprimer */}
       <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
         <div>
-          <h2 style={{fontSize:24,fontWeight:700,color:"#a78bfa"}}>Bulletin de Notes</h2>
+          <h2 style={{fontSize:24,fontWeight:700,color:"#34d399"}}>Bulletin de Notes</h2>
           <p style={{color:"var(--text2)",fontSize:13,marginTop:5}}>Vue officielle — pret a imprimer</p>
         </div>
-        <button onClick={() => window.print()} style={{background:"#a78bfa",border:"none",borderRadius:9,padding:"11px 22px",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+        <button onClick={() => window.print()} style={{background:"#34d399",border:"none",borderRadius:9,padding:"11px 22px",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>
           Imprimer
         </button>
       </div>

@@ -42,7 +42,7 @@ export default function MonProfil({ user, etudiant, data, setData }) {
 
   const inp = {
     width:"100%", background:"rgba(255,255,255,0.05)",
-    border:"1px solid rgba(167,139,250,0.3)", borderRadius:8,
+    border:"1px solid rgba(52,211,153,0.3)", borderRadius:8,
     padding:"10px 12px", color:"var(--text)", fontSize:14,
     outline:"none", boxSizing:"border-box",
   };
@@ -53,22 +53,22 @@ export default function MonProfil({ user, etudiant, data, setData }) {
 
   return (
     <div>
-      <h2 style={{fontSize:24,fontWeight:700,color:"#a78bfa",marginBottom:24}}>Mon Profil</h2>
+      <h2 style={{fontSize:24,fontWeight:700,color:"#34d399",marginBottom:24}}>Mon Profil</h2>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,alignItems:"start"}}>
 
         {/* Carte infos */}
-        <div style={{background:"var(--bg2)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:14,padding:"24px 28px"}}>
+        <div style={{background:"var(--bg2)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:14,padding:"24px 28px"}}>
 
           {/* Avatar */}
           <div style={{display:"flex",gap:16,alignItems:"center",marginBottom:24}}>
             <div style={{
               width:60,height:60,borderRadius:"50%",
-              background:"rgba(167,139,250,0.12)",border:"2px solid rgba(167,139,250,0.35)",
+              background:"rgba(52,211,153,0.12)",border:"2px solid rgba(52,211,153,0.35)",
               display:"flex",alignItems:"center",justifyContent:"center",
-              fontSize:20,fontWeight:700,color:"#a78bfa",flexShrink:0,
+              fontSize:20,fontWeight:700,color:"#34d399",flexShrink:0,
             }}>{initials}</div>
             <div>
-              <div style={{fontSize:17,fontWeight:700,color:"#a78bfa"}}>{etudiant.name}</div>
+              <div style={{fontSize:17,fontWeight:700,color:"#34d399"}}>{etudiant.name}</div>
               <div style={{color:"var(--text3)",fontSize:12,marginTop:3,fontFamily:"monospace"}}>{etudiant.matricule}</div>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function MonProfil({ user, etudiant, data, setData }) {
               ))}
               <div style={{display:"flex",gap:8,marginTop:4}}>
                 <button onClick={saveProfile} disabled={loading} style={{
-                  flex:1,background:"#a78bfa",border:"none",borderRadius:8,
+                  flex:1,background:"#34d399",border:"none",borderRadius:8,
                   padding:"10px",color:"#fff",fontWeight:700,cursor:"pointer",
                 }}>{loading?"Enregistrement...":"Enregistrer"}</button>
                 <button onClick={()=>setEditMode(false)} style={{
@@ -120,16 +120,16 @@ export default function MonProfil({ user, etudiant, data, setData }) {
                 </div>
               ))}
               <button onClick={()=>setEditMode(true)} style={{
-                marginTop:18,width:"100%",background:"rgba(167,139,250,0.1)",
-                border:"1px solid rgba(167,139,250,0.3)",borderRadius:8,padding:"10px",
-                color:"#a78bfa",fontWeight:600,cursor:"pointer",fontSize:14,
+                marginTop:18,width:"100%",background:"rgba(52,211,153,0.1)",
+                border:"1px solid rgba(52,211,153,0.3)",borderRadius:8,padding:"10px",
+                color:"#34d399",fontWeight:600,cursor:"pointer",fontSize:14,
               }}>Modifier le profil</button>
             </>
           )}
         </div>
 
         {/* Changer MDP */}
-        <ChangerMotDePasse user={user} data={data} setData={setData} color="#a78bfa"/>
+        <ChangerMotDePasse user={user} data={data} setData={setData} color="#34d399"/>
       </div>
     </div>
   );

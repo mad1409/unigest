@@ -5,7 +5,7 @@ const JOURS = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
 const TYPE_COLORS = {
   Cours: { bg:"rgba(56,189,248,0.12)", border:"rgba(56,189,248,0.4)", color:"#38bdf8" },
   TD:    { bg:"rgba(52,211,153,0.12)", border:"rgba(52,211,153,0.4)", color:"#34d399" },
-  TP:    { bg:"rgba(167,139,250,0.12)",border:"rgba(167,139,250,0.4)",color:"#a78bfa" },
+  TP:    { bg:"rgba(52,211,153,0.12)",border:"rgba(52,211,153,0.4)",color:"#34d399" },
 };
 
 export default function MonEDT({ etudiant, data }) {
@@ -42,9 +42,9 @@ export default function MonEDT({ etudiant, data }) {
 
   const typeStyle = t => TYPE_COLORS[t] || TYPE_COLORS.Cours;
 
-  const filterBtn = (active, color="#a78bfa") => ({
+  const filterBtn = (active, color="#34d399") => ({
     padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",
-    background:active?"rgba(167,139,250,0.15)":"rgba(255,255,255,0.04)",
+    background:active?"rgba(52,211,153,0.15)":"rgba(255,255,255,0.04)",
     border:active?"1.5px solid "+color:"1px solid var(--border)",
     color:active?color:"var(--text2)",
   });
@@ -54,7 +54,7 @@ export default function MonEDT({ etudiant, data }) {
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
-          <h2 style={{fontFamily:"'Lora',serif",fontSize:24,fontWeight:700,color:"#a78bfa"}}>Mon Emploi du Temps</h2>
+          <h2 style={{fontFamily:"'Lora',serif",fontSize:24,fontWeight:700,color:"#34d399"}}>Mon Emploi du Temps</h2>
           <p style={{color:"var(--text2)",fontSize:13,marginTop:4}}>{allSlots.length} creneau(x)</p>
         </div>
         {/* Vue */}
@@ -99,8 +99,8 @@ export default function MonEDT({ etudiant, data }) {
             {JOURS.filter(j=>filterJour==="all"||j===filterJour).map(j=>(
               <div key={j} style={{
                 padding:"10px",textAlign:"center",fontWeight:700,fontSize:13,
-                background:slotsByJour[j]?.length?"rgba(167,139,250,0.1)":"var(--bg2)",
-                color:slotsByJour[j]?.length?"#a78bfa":"var(--text3)",
+                background:slotsByJour[j]?.length?"rgba(52,211,153,0.1)":"var(--bg2)",
+                color:slotsByJour[j]?.length?"#34d399":"var(--text3)",
                 borderRadius:8,border:"1px solid var(--border)",
               }}>{j}</div>
             ))}
@@ -164,7 +164,7 @@ export default function MonEDT({ etudiant, data }) {
             if (!slots.length) return null;
             return (
               <div key={j}>
-                <div style={{fontSize:13,fontWeight:700,color:"#a78bfa",marginBottom:6,paddingLeft:4}}>{j}</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#34d399",marginBottom:6,paddingLeft:4}}>{j}</div>
                 {slots.map((s,i) => {
                   const ts = typeStyle(s.type);
                   return (
