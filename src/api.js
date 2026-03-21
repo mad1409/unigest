@@ -35,6 +35,11 @@ async function request(method, path, body) {
 }
 
 export const api = {
+  getCalendrier:     (annee)      => request('GET',    '/calendrier?annee='+(annee||'2025/2026')),
+  getCalendrierPublic:(annee)      => fetch((import.meta.env.VITE_API_URL||'/api')+'/calendrier/public?annee='+(annee||'2025/2026')).then(r=>r.json()),
+  createEvenement:   (data)       => request('POST',   '/calendrier', data),
+  updateEvenement:   (id, data)   => request('PUT',    '/calendrier/'+id, data),
+  deleteEvenement:   (id)         => request('DELETE', '/calendrier/'+id),
   getDeliberations:    ()                          => request('GET',  '/deliberations'),
   calculerDeliberation:(data)                       => request('POST', '/deliberations/calculer', data),
   updateJury:          (id, data)                   => request('PUT',  '/deliberations/'+id+'/jury', data),

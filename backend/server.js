@@ -143,6 +143,7 @@ async function initDB() {
 }
 
 // ── Routes publiques ────────────────────────
+app.use('/api/calendrier',    require('./routes/calendrier'));
 app.use('/api/deliberations', require('./routes/deliberations'));
 app.use('/api/audit',      require('./routes/audit'));
 app.use('/api/auth', require('./routes/auth'));
