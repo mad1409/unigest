@@ -1,3 +1,17 @@
+
+// Mettre à jour le favicon dynamiquement
+function updateFavicon(logoUrl) {
+  try {
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = logoUrl;
+    link.type = 'image/png';
+  } catch(e) {}
+}
 import { lazy, Suspense } from "react";
 import ParticlesBackground from "./components/shared/ParticlesBackground";
 
@@ -181,6 +195,14 @@ export default function App() {
   useEffect(() => {
     api.getPublicParametres().then(p => {
       setPublicParams(p || {});
+      // Mettre à jour le favicon avec le logo de l'université
+      if (p?.logo) {
+        updateFavicon(p.logo);
+      }
+      // Mettre à jour le titre de la page
+      if (p?.nom_etablissement) {
+        document.title = p.nom_etablissement + ' — UniGest';
+      }
       });
   }, []);
 
@@ -213,6 +235,13 @@ export default function App() {
       const normalized = normalize({ filieres, etudiants, ues, notes,
         emploisDuTemps:edt, groupes, professeurs, users, parametres });
       setData(normalized);
+      // Mettre à jour favicon et titre
+      if (normalized?.parametres?.logo) {
+        updateFavicon(normalized.parametres.logo);
+      }
+      if (normalized?.parametres?.nomEtablissement) {
+        document.title = normalized.parametres.nomEtablissement + ' — UniGest';
+      }
       // Appliquer la couleur principale
       const couleur = normalized?.parametres?.couleurPrincipale || normalized?.parametres?.couleur_principale || '#f0c040';
       document.documentElement.style.setProperty('--primary', couleur);
