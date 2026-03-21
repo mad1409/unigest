@@ -1,15 +1,13 @@
-
-const express = require('express');
-
-// Sanitiser les strings pour éviter XSS
 function sanitize(str) {
   if (typeof str !== 'string') return str;
-  return str.replace(/<script[^>]*>.*?<\/script>/gi, '')
-            .replace(/<[^>]+>/g, '')
-            .trim();
+  return str
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/javascript:/gi, '')
+    .trim();
 }
 
-// Valider et sanitiser le body
 function validateBody(req, res, next) {
   if (req.body && typeof req.body === 'object') {
     for (const [key, val] of Object.entries(req.body)) {

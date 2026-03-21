@@ -3,6 +3,7 @@ import Layout from "../shared/Layout";
 import AdminOverview from "./AdminOverview";
 import AdminNotifications from "./AdminNotifications";
 import CalendrierAcademique from "./CalendrierAcademique";
+import Deliberation from "./Deliberation";
 import RapportPDF from "./RapportPDF";
 import GestionFilieres from "./GestionFilieres";
 import GestionUE from "./GestionUE";
@@ -64,6 +65,7 @@ export default function AdminDashboard({
     { id: "import",        icon: ICONS.import,    label: "Import CSV"       },
     { id: "notifications", icon: ICONS.overview,  label: "Notifications", badge: nbAlertes },
     { id: "calendrier",    icon: ICONS.edt,       label: "Calendrier"     },
+    { id: "deliberation",  icon: ICONS.overview,  label: "Deliberation"   },
     { id: "rapports",      icon: ICONS.overview,  label: "Rapports & Exports" },
     { id: "profil",    icon: ICONS.profil,    label: "Mon profil"       },
   ];
@@ -99,6 +101,7 @@ export default function AdminDashboard({
       {tab === "import"        && <ImportCSV          data={data} setData={setData} />}
       {tab === "notifications" && <AdminNotifications data={data} />}
       {tab === "calendrier"    && <CalendrierAcademique data={data} />}
+      {tab === "deliberation"  && <Deliberation data={data} />}
       {tab === "rapports"      && <RapportPDF data={data} />}
       {tab === "profil"    && <AdminProfil      user={user} data={data} setData={setData} />}
     </Layout>

@@ -14,7 +14,35 @@ const PORT = process.env.PORT || 4000;
 // Compression gzip
 app.use(compression({ level: 6, threshold: 1024 }));
 
-app.use(helmet({ crossOriginEmbedderPolicy:false, contentSecurityPolicy:false }));
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc:   ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:    ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:     ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "http://13.38.166.249:4000"],
+    },
+  },
+  // Protection XSS
+  xssFilter: true,
+  // Pas de sniffing de type MIME
+  noSniff: true,
+  // Cacher la version du serveur
+  hidePoweredBy: true,
+  // Clickjacking
+  frameguard: { action: 'deny' },
+}));
+
+// Protection supplémentaire XSS
+app.use((req, res, next) => {
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 app.use(cors({
   origin: function(origin, callback) {
     const allowed = [
