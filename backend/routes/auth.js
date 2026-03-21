@@ -1,3 +1,42 @@
+
+// Brute force protection
+const loginAttempts = new Map();
+const MAX_ATTEMPTS  = 5;
+const BLOCK_TIME    = 15 * 60 * 1000; // 15 minutes
+
+function checkBruteForce(id) {
+  const now = Date.now();
+  const attempts = loginAttempts.get(id) || { count:0, firstAttempt:now, blocked:false };
+  
+  if (attempts.blocked && (now - attempts.firstAttempt) < BLOCK_TIME) {
+    const restant = Math.ceil((BLOCK_TIME - (now - attempts.firstAttempt)) / 60000);
+    return { blocked: true, restant };
+  }
+  
+  if ((now - attempts.firstAttempt) > BLOCK_TIME) {
+    loginAttempts.delete(id);
+    return { blocked: false };
+  }
+  
+  return { blocked: false };
+}
+
+function recordFailedAttempt(id) {
+  const now = Date.now();
+  const attempts = loginAttempts.get(id) || { count:0, firstAttempt:now, blocked:false };
+  attempts.count++;
+  if (attempts.count >= MAX_ATTEMPTS) {
+    attempts.blocked = true;
+    attempts.firstAttempt = now;
+    console.error('[SECURITE] Compte bloque apres', MAX_ATTEMPTS, 'tentatives:', id);
+  }
+  loginAttempts.set(id, attempts);
+  return attempts.count;
+}
+
+function clearAttempts(id) {
+  loginAttempts.delete(id);
+}
 const { logAudit } = require('../middleware/audit');
 const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
@@ -27,13 +66,21 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     const user = r.rows[0];
     const ok   = await bcrypt.compare(password, user.password);
-    if (!ok)
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+    if (!ok) {
+      const count = recordFailedAttempt(id);
+      const restants = MAX_ATTEMPTS - count;
+      return res.status(401).json({ 
+        error: restants > 0 
+          ? `Identifiant ou mot de passe incorrect. ${restants} tentative(s) restante(s)`
+          : 'Compte bloque pendant 15 minutes'
+      });
+    }
+    clearAttempts(id);
     const token = jwt.sign(
       { id: user.id, role: user.role, name: user.name,
         profId: user.prof_id, etudiantId: user.etudiant_id },
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: '7d' }
+      { expiresIn: '8h' }
     );
     await logAudit(req, 'LOGIN', 'users', user.id, { role: user.role });
     res.json({ token, user: {
@@ -63,6 +110,29 @@ router.post('/change-password', async (req, res) => {
     res.json({ success: true });
   } catch(err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/refresh — renouveler le token
+router.post('/refresh', async (req, res) => {
+  const header = req.headers['authorization'];
+  if (!header) return res.status(401).json({ error: 'Token manquant' });
+  const token = header.split(' ')[1];
+  try {
+    const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
+    // Générer un nouveau token
+    const newToken = require('jsonwebtoken').sign(
+      { id:decoded.id, role:decoded.role, name:decoded.name,
+        profId:decoded.profId, etudiantId:decoded.etudiantId,
+        tenantId:decoded.tenantId, tenantCode:decoded.tenantCode },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+    // Blacklister l'ancien token
+    tokenBlacklist.add(token);
+    res.json({ token: newToken });
+  } catch(e) {
+    res.status(401).json({ error: 'Token invalide' });
   }
 });
 

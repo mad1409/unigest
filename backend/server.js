@@ -37,6 +37,25 @@ app.use(helmet({
 }));
 
 // Protection supplémentaire XSS
+// CSRF Protection — vérifier l'origine des requêtes
+app.use((req, res, next) => {
+  if (['POST','PUT','DELETE','PATCH'].includes(req.method)) {
+    const origin  = req.headers['origin'];
+    const referer = req.headers['referer'];
+    const allowed = [
+      'http://13.38.166.249:5173',
+      'http://13.38.166.249',
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ];
+    if (origin && !allowed.includes(origin)) {
+      console.error('[SECURITE] CSRF bloque - origine:', origin);
+      return res.status(403).json({ error: 'Origine non autorisee' });
+    }
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -62,6 +81,26 @@ app.use(validateBody);
 
 const limiterGlobal = rateLimit({ windowMs:15*60*1000, max:1000, standardHeaders:true, legacyHeaders:false });
 const limiterLogin  = rateLimit({ windowMs:15*60*1000, max:100 });
+// ── Détection d'intrusion
+app.use((req, res, next) => {
+  // Vérifier seulement l'URL et les query params (pas le body)
+  const toCheck = [req.url, JSON.stringify(req.query || {})].join(' ');
+  const suspiciousPatterns = [
+    /unions+select/i,
+    /drops+table/i,
+    /inserts+into.*values/i,
+    /<script[s>]/i,
+    /javascript:s*alert/i,
+  ];
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(toCheck)) {
+      console.error('[INTRUSION]', new Date().toISOString(), 'IP:', req.ip, 'URL:', req.url);
+      return res.status(400).json({ error: 'Requete invalide' });
+    }
+  }
+  next();
+});
+
 // ── Logs d'accès ────────────────────────────
 app.use((req, res, next) => {
   const start = Date.now();
