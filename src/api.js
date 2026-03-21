@@ -41,6 +41,7 @@ export const api = {
   getPublicParametres: () => fetch(BASE.replace('/api','') + '/api/parametres/public').then(r=>r.json()).catch(()=>({})),
   // Auth
   login:          (id, password, role) => request('POST', '/auth/login',          { id, password, role }),
+  resetEtudiantPassword: (etudiantId, newPassword) => request('POST', '/auth/reset-etudiant', { etudiantId, newPassword }),
   changePassword: (userId, oldPassword, newPassword) => request('POST', '/auth/change-password', { userId, oldPassword, newPassword }),
 
   // Données

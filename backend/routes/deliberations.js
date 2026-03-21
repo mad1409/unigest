@@ -37,24 +37,23 @@ router.post('/calculer', auth, admin, async (req, res) => {
       // Récupérer les UEs du semestre de la filière de l'étudiant
       const ues = await pool.query(`
         SELECT u.*, m.id as matiere_id, m.name as matiere_name,
-          m.credit_ecue, m.coefficient
+          m.credit_ecue
         FROM ues u
         JOIN matieres m ON m.ue_id = u.id
         WHERE u.semestre = $1
-          AND $2 = ANY(u.filiere_ids)
+          AND u.filiere_ids @> ARRAY[$2]::integer[]
       `, [semestre, etu.filiere_id]);
 
       if (!ues.rows.length) continue;
 
       // Récupérer les notes
       const notes = await pool.query(`
-        SELECT n.*, m.credit_ecue, m.coefficient
+        SELECT n.*, m.credit_ecue
         FROM notes n
         JOIN matieres m ON m.id = n.matiere_id
         WHERE n.etudiant_id = $1
           AND n.semestre = $2
-          AND n.annee_academique = $3
-      `, [etu.id, semestre, anneeAcademique]);
+      `, [etu.id, semestre]);
 
       // Calculer moyenne
       let totalPoints  = 0;
