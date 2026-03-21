@@ -115,12 +115,12 @@ export default function RapportPDF({ data }) {
               background:"#f0c040",border:"none",borderRadius:10,
               padding:"12px 20px",color:"#1a1200",fontWeight:700,
               fontSize:13,cursor:"pointer",
-            }}>🖨 Imprimer PDF</button>
+            }}>Imprimer PDF</button>
             <button onClick={exportExcel} style={{
               background:"#34d399",border:"none",borderRadius:10,
               padding:"12px 20px",color:"#052e16",fontWeight:700,
               fontSize:13,cursor:"pointer",
-            }}>📊 Exporter Excel</button>
+            }}>Exporter Excel</button>
           </div>
         </div>
 

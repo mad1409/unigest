@@ -239,9 +239,16 @@ export default function App() {
       if (normalized?.parametres?.logo) {
         updateFavicon(normalized.parametres.logo);
       }
-      if (normalized?.parametres?.nomEtablissement) {
-        document.title = normalized.parametres.nomEtablissement + ' — UniGest';
-      }
+      const nomEtab = normalized?.parametres?.nomEtablissement || 'UniGest';
+      const role = user?.role || '';
+      const roleLabel = {
+        admin: 'Administration',
+        prof: 'Espace Professeur',
+        secretaire: 'Secretariat',
+        surveillant: 'Surveillance',
+        etudiant: 'Espace Etudiant',
+      }[role] || '';
+      document.title = roleLabel ? nomEtab + ' — ' + roleLabel : nomEtab;
       // Appliquer la couleur principale
       const couleur = normalized?.parametres?.couleurPrincipale || normalized?.parametres?.couleur_principale || '#f0c040';
       document.documentElement.style.setProperty('--primary', couleur);
