@@ -35,6 +35,9 @@ async function request(method, path, body) {
 }
 
 export const api = {
+  getDeliberations:    ()                          => request('GET',  '/deliberations'),
+  calculerDeliberation:(data)                       => request('POST', '/deliberations/calculer', data),
+  updateJury:          (id, data)                   => request('PUT',  '/deliberations/'+id+'/jury', data),
   getPublicParametres: () => fetch(BASE.replace('/api','') + '/api/parametres/public').then(r=>r.json()).catch(()=>({})),
   // Auth
   login:          (id, password, role) => request('POST', '/auth/login',          { id, password, role }),
