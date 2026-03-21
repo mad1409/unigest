@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
       { id: user.id, role: user.role, name: user.name,
         profId: user.prof_id, etudiantId: user.etudiant_id },
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: '8h' }
+      { expiresIn: '24h' }
     );
     await logAudit(req, 'LOGIN', 'users', user.id, { role: user.role });
     res.json({ token, user: {
@@ -126,7 +126,7 @@ router.post('/refresh', async (req, res) => {
         profId:decoded.profId, etudiantId:decoded.etudiantId,
         tenantId:decoded.tenantId, tenantCode:decoded.tenantCode },
       process.env.JWT_SECRET,
-      { expiresIn: '8h' }
+      { expiresIn: '24h' }
     );
     // Blacklister l'ancien token
     tokenBlacklist.add(token);
