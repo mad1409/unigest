@@ -45,6 +45,7 @@ export default function GestionUE({ data, setData }) {
   const [filterFiliere, setFilterFiliere] = useState("all");
   const [filterSearch,  setFilterSearch]  = useState("");
   const [modal,         setModal]         = useState(false);
+  const [saving,        setSaving]        = useState(false);
   const [editing,       setEditing]       = useState(null);
   const [searchFiliere, setSearchFiliere] = useState("");
 
@@ -107,27 +108,33 @@ export default function GestionUE({ data, setData }) {
   }
 
   async function save() {
-    if (!form.code || !form.intitule) return;
-    if (saving) return;  // Eviter double clic
+    if (!form.code || !form.intitule) {
+      alert("Remplissez le code et l'intitule");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
-        code: form.code,
-        intitule: form.intitule,
-        semestre: parseInt(form.semestre),
-        creditUE: parseInt(form.creditUE),
-        filiereIds: form.filiereIds,
-        matieres: form.matieres,
+        code: form.code.trim(),
+        intitule: form.intitule.trim(),
+        semestre: parseInt(form.semestre) || 1,
+        creditUE: parseInt(form.creditUE) || 3,
+        filiereIds: form.filiereIds || [],
+        matieres: form.matieres || [],
       };
       if (editing) {
         await api.updateUE(editing, payload);
       } else {
         await api.createUE(payload);
       }
-      await setData();
       setModal(false);
-    } catch(e) { alert(e.message); }
-    finally { setSaving(false); }
+      setEditing(null);
+      await setData();
+    } catch(e) {
+      alert("Erreur: " + (e.message || JSON.stringify(e)));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function del(id) {
@@ -527,7 +534,14 @@ export default function GestionUE({ data, setData }) {
 
           <div style={modalFooter}>
             <button onClick={() => setModal(false)} style={btnSecondary}>Annuler</button>
-            <button onClick={save} style={btnPrimary("#f0c040")}>Enregistrer</button>
+            <button onClick={async () => {
+                try { await save(); }
+                catch(err) { alert("Erreur: " + err.message); }
+              }} 
+              disabled={saving}
+              style={{...btnPrimary("#f0c040"), opacity: saving ? 0.6 : 1}}>
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </button>
           </div>
         </Modal>
       )}
