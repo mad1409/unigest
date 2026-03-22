@@ -82,7 +82,7 @@ export default function GestionSites() {
           textAlign:"center",padding:"60px",color:"var(--text3)",
           background:"var(--bg2)",borderRadius:14,border:"1px solid var(--border)",
         }}>
-          <div style={{fontSize:40,marginBottom:16}}>🏫</div>
+          
           <div style={{fontSize:16,fontWeight:600,marginBottom:8}}>Aucun site configuré</div>
           <div style={{fontSize:13}}>Ajoutez les sites de votre établissement</div>
           <button onClick={openNew} style={{
