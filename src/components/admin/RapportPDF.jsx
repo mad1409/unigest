@@ -1,8 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../../api";
 
 export default function RapportPDF({ data }) {
   const [filterFiliere, setFilterFiliere] = useState("all");
+  const [filterSite,    setFilterSite]    = useState("all");
+  const [sites,         setSites]         = useState([]);
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
   const [type, setType] = useState("enseignants");
 
   const filieres   = data.filieres   || [];
@@ -14,6 +21,10 @@ export default function RapportPDF({ data }) {
   function imprimer() {
     window.print();
   }
+
+  const etuFiltresSite = filterSite === "all"
+    ? etudiants
+    : etudiants.filter(e => String(e.site_id) === String(filterSite));
 
   function exportExcel() {
     let csv = "";
@@ -142,6 +153,14 @@ export default function RapportPDF({ data }) {
 
         {(type==="etudiants"||type==="resultats") && (
           <div style={{marginTop:12,maxWidth:280}}>
+            {sites.length > 0 && (
+              <select value={filterSite} onChange={e=>setFilterSite(e.target.value)}
+                style={{background:"rgba(255,255,255,0.05)",border:"1px solid var(--border)",
+                  borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:12,outline:"none"}}>
+                <option value="all">Tous les sites</option>
+                {sites.map(s=><option key={s.id} value={s.id}>{s.nom}</option>)}
+              </select>
+            )}
             <select value={filterFiliere} onChange={e=>setFilterFiliere(e.target.value)}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1px solid var(--border)",
                 borderRadius:8,padding:"9px 12px",color:"var(--text)",fontSize:13,outline:"none"}}>
@@ -271,7 +290,7 @@ export default function RapportPDF({ data }) {
         {type==="resultats" && (
           <div>
             {(filterFiliere==="all" ? filieres : filieres.filter(f=>f.id===parseInt(filterFiliere))).map(fil => {
-              const etus = etudiants.filter(e=>(e.filiereId||e.filiere_id)===fil.id);
+              const etus = etuFiltresSite.filter(e=>(e.filiereId||e.filiere_id)===fil.id);
               if (!etus.length) return null;
               return (
                 <div key={fil.id} style={{marginBottom:24,pageBreakInside:"avoid"}}>

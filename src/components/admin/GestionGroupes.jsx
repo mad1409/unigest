@@ -1,11 +1,17 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../api";
 import SearchSelect from "../shared/SearchSelect";
 import { Modal, Field, inputStyle, btnPrimary, btnSecondary, modalTitle, modalFooter } from "./GestionFilieres";
 
 export default function GestionGroupes({ data, setData }) {
   const [filterFiliere, setFilterFiliere] = useState("all");
+  const [sites,  setSites]  = useState([]);
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
+
   const [modal,         setModal]         = useState(false);
   const [form,          setForm]          = useState({ nom:"", filiereId:"", type:"TD", effectif:30 });
   const [editing,       setEditing]       = useState(null);
@@ -158,7 +164,16 @@ export default function GestionGroupes({ data, setData }) {
         <Modal onClose={() => setModal(false)}>
           <h3 style={modalTitle("#a78bfa")}>{editing ? "Modifier groupe" : "Nouveau groupe"}</h3>
           <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-            <Field label="Nom du groupe *">
+            <Field label="Site">
+              <select style={inputStyle} value={form.siteId||""}
+                onChange={e=>setForm({...form,siteId:e.target.value})}>
+                <option value="">-- Choisir un site --</option>
+                {sites.map(s=>(
+                  <option key={s.id} value={s.id}>{s.nom}</option>
+                ))}
+              </select>
+            </Field>
+          <Field label="Nom du groupe *">
               <input style={inputStyle} value={form.nom}
                 onChange={e => setForm({...form, nom:e.target.value})}
                 placeholder="ex: INFO-L1-TD1"/>

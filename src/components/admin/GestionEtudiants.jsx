@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { api } from "../../api";
 import SearchSelect from "../shared/SearchSelect";
 import { Modal, Field, inputStyle, btnPrimary, btnSecondary, modalTitle, modalFooter } from "./GestionFilieres";
@@ -21,7 +21,7 @@ export default function GestionEtudiants({ data, setData }) {
     id:null, name:"", email:"", tel:"",
     filiereId: data.filieres[0]?.id || "",
     anneeAcademique: anneeActive,
-    session:"jour", matricule:"",
+    session:"jour", matricule:"", siteId:"",
   };
 
   const [modal,         setModal]         = useState(false);
@@ -30,6 +30,12 @@ export default function GestionEtudiants({ data, setData }) {
   const [filterAnnee,   setFilterAnnee]   = useState(anneeActive);
   const [filterFiliere, setFilterFiliere] = useState("all");
   const [filterSession, setFilterSession] = useState("all");
+  const [sites,         setSites]         = useState([]);
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
+  const [filterSite,    setFilterSite]    = useState("all");
   const [search,        setSearch]        = useState("");
   const [page,          setPage]          = useState(1);
   const [loading,       setLoading]       = useState(false);
@@ -42,12 +48,13 @@ export default function GestionEtudiants({ data, setData }) {
     const anneeOk   = filterAnnee   === "all" || (e.annee_academique||e.anneeAcademique) === filterAnnee;
     const filiereOk = filterFiliere === "all" || (e.filiere_id||e.filiereId) === parseInt(filterFiliere);
     const sessionOk = filterSession === "all" || e.session === filterSession;
+    const siteOk    = filterSite === "all" || String(e.site_id) === String(filterSite);
     const q         = search.toLowerCase();
     const searchOk  = !q || e.name.toLowerCase().includes(q) ||
       (e.matricule||"").toLowerCase().includes(q) ||
       (e.email||"").toLowerCase().includes(q);
-    return anneeOk && filiereOk && sessionOk && searchOk;
-  }), [etudiants, filterAnnee, filterFiliere, filterSession, search]);
+    return anneeOk && filiereOk && sessionOk && siteOk && searchOk;
+  }), [etudiants, filterAnnee, filterFiliere, filterSession, filterSite, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageSafe   = Math.min(page, totalPages);
@@ -59,6 +66,7 @@ export default function GestionEtudiants({ data, setData }) {
     setForm({
       id: e.id, name: e.name, email: e.email||"", tel: e.tel||"",
       filiereId: e.filiere_id||e.filiereId,
+      siteId: e.site_id || "",
       anneeAcademique: e.annee_academique||e.anneeAcademique||anneeActive,
       session: e.session||"jour", matricule: e.matricule||"",
     });
@@ -345,6 +353,15 @@ export default function GestionEtudiants({ data, setData }) {
                   onChange={e=>setForm({...form,session:e.target.value})}>
                   <option value="jour">Jour</option>
                   <option value="soir">Soir</option>
+                </select>
+              </Field>
+              <Field label="Site">
+                <select style={inputStyle} value={form.siteId}
+                  onChange={e=>setForm({...form,siteId:e.target.value})}>
+                  <option value="">-- Choisir un site --</option>
+                  {sites.map(s=>(
+                    <option key={s.id} value={s.id}>{s.nom}</option>
+                  ))}
                 </select>
               </Field>
             </div>

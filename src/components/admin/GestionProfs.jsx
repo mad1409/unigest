@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { api } from "../../api";
 import SearchSelect from "../shared/SearchSelect";
 import {
@@ -10,6 +10,12 @@ import {
 const initForm = { name:"", tel:"", email:"", ueIds:[], id:null };
 
 export default function GestionProfs({ data, setData }) {
+  const [sites, setSites] = useState([]);
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
+  const [filterSite, setFilterSite] = useState("all");
   const [modal,  setModal]  = useState(false);
   const [form,   setForm]   = useState(initForm);
   const [search, setSearch] = useState("");
@@ -202,6 +208,15 @@ export default function GestionProfs({ data, setData }) {
                 onChange={e=>setForm({...form,tel:e.target.value})}
                 placeholder="+223 07 00 11 22"/>
             </Field>
+            <Field label="Site">
+                <select style={inputStyle} value={form.siteId||""}
+                  onChange={e=>setForm({...form,siteId:e.target.value})}>
+                  <option value="">-- Choisir un site --</option>
+                  {sites.map(s=>(
+                    <option key={s.id} value={s.id}>{s.nom}</option>
+                  ))}
+                </select>
+              </Field>
             <Field label="Email">
               <input style={inputStyle} value={form.email}
                 onChange={e=>setForm({...form,email:e.target.value})}

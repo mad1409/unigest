@@ -121,6 +121,12 @@ function ProfSearch({ value, onChange, professeurs }) {
 // ── Composant principal ───────────────────────────────
 export default function GestionEDT({ data, setData }) {
   const [selectedEDT, setSelectedEDT] = useState(null);
+  const [sites,        setSites]        = useState([]);
+  const [filterSite,   setFilterSite]   = useState("all");
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
   const [slotModal,   setSlotModal]   = useState(false);
   const [vueGrille,   setVueGrille]   = useState(false);
   const [edtModal,    setEdtModal]    = useState(false);
@@ -131,7 +137,7 @@ export default function GestionEDT({ data, setData }) {
 
   const initSlot = {
     jour:"Lundi", heureDebut:"08:00", heureFin:"10:00",
-    matiere:"", salle:"", type:"Cours", session:"jour",
+    matiere:"", salle:"", type:"Cours", session:"jour", siteId:"",
     profNom:"", profTel:"", groupe:"", tronc:false,
   };
   const [slotForm, setSlotForm] = useState(initSlot);
@@ -170,7 +176,7 @@ export default function GestionEDT({ data, setData }) {
       jour: slotForm.jour, session: slotForm.session,
       heureDebut: slotForm.heureDebut, heureFin: slotForm.heureFin,
       matiere: slotForm.matiere, type: slotForm.type,
-      salle: slotForm.salle, groupe: slotForm.groupe,
+      salle: slotForm.salle, groupe: slotForm.groupe, siteId: slotForm.siteId||null,
       profNom: slotForm.profNom, profTel: slotForm.profTel,
       tronc: slotForm.tronc,
     };
@@ -302,6 +308,18 @@ export default function GestionEDT({ data, setData }) {
         </div>
 
         {/* Creneaux */}
+        {/* Filtre site */}
+        <select style={{
+          background:"rgba(255,255,255,0.05)",border:"1px solid var(--border)",
+          borderRadius:8,padding:"8px 12px",color:"var(--text)",fontSize:12,
+          outline:"none",marginBottom:12,width:"100%",
+        }} value={filterSite} onChange={e=>setFilterSite(e.target.value)}>
+          <option value="all">Tous les sites</option>
+          {sites.map(s=>(
+            <option key={s.id} value={s.id}>{s.nom}</option>
+          ))}
+        </select>
+
         {selectedEDT ? (
           <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:14, padding:"20px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -365,6 +383,7 @@ export default function GestionEDT({ data, setData }) {
                             {s.tronc && <div style={{ fontSize:10, color:"#34d399" }}>Tronc commun</div>}
                           </Td>
                           <Td><span style={{ fontFamily:"monospace", fontSize:12 }}>{s.salle||"—"}</span></Td>
+                          <Td>{sites.find(st=>st.id===s.site_id)?.nom||"—"}</Td>
                           <Td>
                             <span style={{
                               background:(tc[s.type]||"#94a3b8")+"18",
@@ -506,6 +525,15 @@ export default function GestionEDT({ data, setData }) {
                 onChange={v => setSlotForm({...slotForm,type:v})}
                 options={TYPES.map(t=>({value:t,label:t}))} placeholder="Choisir un type..." color="#a78bfa"/>
             </Field>
+            <Field label="Site">
+                <select style={inp} value={slotForm.siteId||""}
+                  onChange={e=>setSlotForm({...slotForm,siteId:e.target.value})}>
+                  <option value="">-- Choisir un site --</option>
+                  {sites.map(s=>(
+                    <option key={s.id} value={s.id}>{s.nom}</option>
+                  ))}
+                </select>
+              </Field>
             <Field label={TYPES_SANS_SALLE.includes(slotForm.type) ? "Salle (optionnelle)" : "Salle *"}>
               <input style={inp} value={slotForm.salle}
                 onChange={e => { const f={...slotForm,salle:e.target.value}; setSlotForm(f); checkConflits(f); }}

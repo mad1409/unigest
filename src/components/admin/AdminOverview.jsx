@@ -1,9 +1,16 @@
 
 import { useMemo } from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "../../api";
 export default function AdminOverview({ data }) {
-  const [filPage, setFilPage] = useState(1);
+  const [filPage,    setFilPage]    = useState(1);
+  const [sites,      setSites]      = useState([]);
+  const [filterSite, setFilterSite] = useState("all");
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
   const FIL_PER_PAGE = 8;
   const filieres       = data.filieres       || [];
   const ues            = data.ues            || [];
@@ -14,10 +21,22 @@ export default function AdminOverview({ data }) {
   const users          = data.users          || [];
 
   // Stats globales
+  // Stats par site
+  const statsSites = sites.map(s => ({
+    nom: s.nom,
+    nbEtu: etudiants.filter(e => String(e.site_id) === String(s.id)).length,
+    nbJour: etudiants.filter(e => String(e.site_id) === String(s.id) && e.session==="jour").length,
+    nbSoir: etudiants.filter(e => String(e.site_id) === String(s.id) && e.session==="soir").length,
+  }));
+
+  const etuFiltres = filterSite === "all"
+    ? etudiants
+    : etudiants.filter(e => String(e.site_id) === String(filterSite));
+
   const stats = [
     { label:"Filieres",         value:filieres.length,       color:"#f0c040", sub:"cycles d'etude" },
     { label:"UE / Matieres",    value:ues.length,            color:"#38bdf8", sub:ues.reduce((s,u)=>s+(u.matieres||[]).length,0)+" matieres" },
-    { label:"Etudiants",        value:etudiants.length,      color:"#a78bfa", sub:etudiants.filter(e=>e.session==="soir").length+" soir / "+etudiants.filter(e=>e.session==="jour").length+" jour" },
+    { label:"Etudiants",        value:etuFiltres.length,      color:"#a78bfa", sub:etuFiltres.filter(e=>e.session==="soir").length+" soir / "+etuFiltres.filter(e=>e.session==="jour").length+" jour" },
     { label:"Enseignants",      value:professeurs.length,    color:"#34d399", sub:"corps enseignant" },
     { label:"EDT",              value:emploisDuTemps.length, color:"#f472b6", sub:emploisDuTemps.reduce((s,e)=>s+(e.slots||[]).length,0)+" creneaux" },
     { label:"Notes saisies",    value:notes.length,          color:"#fb923c", sub:"evaluations" },
@@ -55,6 +74,26 @@ export default function AdminOverview({ data }) {
 
       {/* Stats grid */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:28}}>
+        {/* Filtre site */}
+        {sites.length > 0 && (
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+            <button onClick={()=>setFilterSite("all")} style={{
+              padding:"7px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",
+              background:filterSite==="all"?"rgba(240,192,64,0.15)":"rgba(255,255,255,0.04)",
+              border:filterSite==="all"?"1.5px solid rgba(240,192,64,0.5)":"1px solid var(--border)",
+              color:filterSite==="all"?"#f0c040":"var(--text2)",
+            }}>Tous les sites</button>
+            {sites.map(s=>(
+              <button key={s.id} onClick={()=>setFilterSite(s.id)} style={{
+                padding:"7px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",
+                background:filterSite===s.id?"rgba(240,192,64,0.15)":"rgba(255,255,255,0.04)",
+                border:filterSite===s.id?"1.5px solid rgba(240,192,64,0.5)":"1px solid var(--border)",
+                color:filterSite===s.id?"#f0c040":"var(--text2)",
+              }}>{s.nom}</button>
+            ))}
+          </div>
+        )}
+
         {stats.map(s => (
           <div key={s.label} style={{
             background:"rgba(52,211,153,0.06)",
@@ -97,8 +136,8 @@ export default function AdminOverview({ data }) {
             Etudiants par session
           </div>
           {[
-            ["Cours du Jour", etudiants.filter(e=>e.session==="jour").length, "#fbbf24"],
-            ["Cours du Soir", etudiants.filter(e=>e.session==="soir").length, "#818cf8"],
+            ["Cours du Jour", etuFiltres.filter(e=>e.session==="jour").length, "#fbbf24"],
+            ["Cours du Soir", etuFiltres.filter(e=>e.session==="soir").length, "#818cf8"],
             ["Total",         etudiants.length,                                "#a78bfa"],
           ].map(([l,v,c]) => (
             <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid var(--border)"}}>
@@ -193,6 +232,28 @@ export default function AdminOverview({ data }) {
             </table>
           </div>
         )}
+      {/* Stats par site */}
+      {statsSites.length > 0 && (
+        <div style={{marginTop:24}}>
+          <h3 style={{fontFamily:"'Lora',serif",fontSize:18,fontWeight:700,color:"#f0c040",marginBottom:14}}>
+            Repartition par site
+          </h3>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+            {statsSites.map(s=>(
+              <div key={s.nom} style={{
+                background:"var(--bg2)",border:"1px solid var(--border)",
+                borderRadius:12,padding:"16px",borderTop:"3px solid #f0c040",
+              }}>
+                <div style={{fontWeight:700,color:"#f0c040",fontSize:14,marginBottom:8}}>{s.nom}</div>
+                <div style={{fontSize:24,fontWeight:900,color:"#fff",marginBottom:4}}>{s.nbEtu}</div>
+                <div style={{fontSize:12,color:"var(--text2)"}}>
+                  {s.nbJour} jour / {s.nbSoir} soir
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

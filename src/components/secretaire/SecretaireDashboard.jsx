@@ -1,7 +1,7 @@
 import { api } from '../../api';
 import SearchSelect from '../shared/SearchSelect';
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Layout from "../shared/Layout";
 import ChangerMotDePasse from "../shared/ChangerMotDePasse";
 
@@ -26,7 +26,12 @@ function genMatricule(annee, filiereId, etudiants, filieres) {
 }
 
 export default function SecretaireDashboard({ user, data, setData, onLogout }) {
-  const [tab, setTab] = useState("inscrire");
+  const [tab,   setTab]   = useState("inscrire");
+  const [sites, setSites] = useState([]);
+
+  useEffect(() => {
+    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+  }, []);
   const nav = [
     { id:"inscrire", label:"Inscrire un etudiant", icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> },
     { id:"cartes",   label:"Imprimer cartes",      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> },
@@ -154,9 +159,10 @@ function ImprimerCartes({ data }) {
   const annees = data.parametres.anneesDisponibles || ["2024/2025"];
   const [fA, setFA] = useState(data.parametres.anneeActive||annees[0]);
   const [fF, setFF] = useState("all");
-  const [fS, setFS] = useState("all");
-  const [q,  setQ]  = useState("");
-  const [sel, setSel] = useState([]);
+  const [fS,   setFS]   = useState("all");
+  const [fSite,setFSite] = useState("all");
+  const [q,    setQ]    = useState("");
+  const [sel,  setSel]  = useState([]);
   const printRef = useRef();
 
   const filtered = useMemo(()=>data.etudiants.filter(e=>{
