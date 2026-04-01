@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 const JOURS = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
@@ -11,17 +10,27 @@ const TYPE_COLORS = {
 export default function MonEDT({ etudiant, data }) {
   const [filterSession, setFilterSession] = useState("all");
   const [filterJour,    setFilterJour]    = useState("all");
-  const [vue,           setVue]           = useState("grille"); // grille | liste
+  const [vue,           setVue]           = useState("grille");
 
   if (!etudiant) return null;
 
   const filiereId = etudiant.filiereId || etudiant.filiere_id;
+  const etudiantSiteId = etudiant.site_id || etudiant.siteId;
+
   const edts = (data.emploisDuTemps||[]).filter(e => {
     const ids = e.filiereIds || e.filiere_ids || [];
-    return ids.includes(filiereId);
+    const edtSiteId = e.site_id || e.siteId;
+    
+    // L'EDT doit correspondre à la filière ET AU SITE de l'étudiant
+    const filiereOk = ids.includes(filiereId);
+    
+    // Sécurité : si l'EDT a un site_id, il doit être le même que l'étudiant
+    // Si l'EDT n'a pas de site_id (anciens données), on l'affiche quand même par sécurité
+    const siteOk = !edtSiteId || edtSiteId === etudiantSiteId;
+
+    return filiereOk && siteOk;
   });
 
-  // Tous les créneaux
   const allSlots = edts.flatMap(edt =>
     (edt.slots||[]).map(s => ({
       ...s,
@@ -36,7 +45,6 @@ export default function MonEDT({ etudiant, data }) {
     return sessionOk && jourOk;
   });
 
-  // Grouper par jour
   const slotsByJour = {};
   JOURS.forEach(j => { slotsByJour[j] = allSlots.filter(s => s.jour === j); });
 
@@ -51,37 +59,28 @@ export default function MonEDT({ etudiant, data }) {
 
   return (
     <div>
-      {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{fontFamily:"'Lora',serif",fontSize:24,fontWeight:700,color:"#34d399"}}>Mon Emploi du Temps</h2>
           <p style={{color:"var(--text2)",fontSize:13,marginTop:4}}>{allSlots.length} creneau(x)</p>
         </div>
-        {/* Vue */}
         <div style={{display:"flex",gap:6}}>
           {[["grille","Grille"],["liste","Liste"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setVue(v)} style={filterBtn(vue===v)}>
-              {l}
-            </button>
+            <button key={v} onClick={()=>setVue(v)} style={filterBtn(vue===v)}>{l}</button>
           ))}
         </div>
       </div>
 
-      {/* Filtres */}
       <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
         <div style={{display:"flex",gap:6}}>
           {[["all","Tous"],["jour","Jour"],["soir","Soir"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setFilterSession(v)} style={filterBtn(filterSession===v,"#fbbf24")}>
-              {l}
-            </button>
+            <button key={v} onClick={()=>setFilterSession(v)} style={filterBtn(filterSession===v,"#fbbf24")}>{l}</button>
           ))}
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button onClick={()=>setFilterJour("all")} style={filterBtn(filterJour==="all")}>Tous les jours</button>
           {JOURS.map(j=>(
-            <button key={j} onClick={()=>setFilterJour(j)} style={filterBtn(filterJour===j)}>
-              {j.slice(0,3)}
-            </button>
+            <button key={j} onClick={()=>setFilterJour(j)} style={filterBtn(filterJour===j)}>{j.slice(0,3)}</button>
           ))}
         </div>
       </div>
@@ -91,10 +90,8 @@ export default function MonEDT({ etudiant, data }) {
           Aucun creneau disponible pour votre filiere
         </div>
       ) : vue === "grille" ? (
-        // ── Vue Grille ────────────────────────────
         <div style={{overflowX:"auto"}}>
           <div style={{display:"grid",gridTemplateColumns:"80px repeat("+JOURS.filter(j=>filterJour==="all"||j===filterJour).length+",1fr)",gap:2,minWidth:500}}>
-            {/* Header jours */}
             <div style={{padding:"10px",background:"var(--bg2)",borderRadius:8}}/>
             {JOURS.filter(j=>filterJour==="all"||j===filterJour).map(j=>(
               <div key={j} style={{
@@ -105,11 +102,9 @@ export default function MonEDT({ etudiant, data }) {
               }}>{j}</div>
             ))}
 
-            {/* Lignes créneaux par jour */}
             {JOURS.filter(j=>filterJour==="all"||j===filterJour).some(j=>slotsByJour[j]?.length) && (
               <>
                 <div style={{gridColumn:"1/-1",height:4}}/>
-                {/* Afficher max des créneaux */}
                 {Array.from({length:Math.max(...JOURS.filter(j=>filterJour==="all"||j===filterJour).map(j=>slotsByJour[j]?.length||0))},(_,i)=>i).map(i=>(
                   <>
                     <div key={"h"+i} style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"4px",color:"var(--text3)",fontSize:11}}>
@@ -157,7 +152,6 @@ export default function MonEDT({ etudiant, data }) {
           </div>
         </div>
       ) : (
-        // ── Vue Liste ─────────────────────────────
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {JOURS.filter(j=>filterJour==="all"||j===filterJour).map(j => {
             const slots = slotsByJour[j] || [];

@@ -1,6 +1,7 @@
 const { logAudit } = require('../middleware/audit');
 
 const router = require('express').Router();
+const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const pool   = require('../db');
 
@@ -13,25 +14,37 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/etudiants
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   const { matricule, name, email, tel, filiereId, anneeAcademique, session } = req.body;
   try {
+    // SECURITE : Forcer le rattachement au site de l'utilisateur qui cree
+    let forcedSiteId = req.body.site_id;
+    if (req.user && !forcedSiteId) {
+      if (req.user.role === 'secretaire' || req.user.role === 'admin_site') {
+        forcedSiteId = req.user.site_id;
+      }
+    }
+
+    // 1. Creer l'etudiant AVEC le site_id
     const r = await pool.query(
-      `INSERT INTO etudiants (matricule,name,email,tel,filiere_id,annee_academique,session)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [matricule, name, email||'', tel||'', filiereId, anneeAcademique, session||'jour']
+      `INSERT INTO etudiants (matricule,name,email,tel,filiere_id,annee_academique,session,site_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [matricule, name, email||'', tel||'', filiereId, anneeAcademique, session||'jour', forcedSiteId || null]
     );
     const etu = r.rows[0];
-    // Créer compte automatiquement
+    
+    // 2. Creer le compte utilisateur AVEC le site_id et un login unique par site
     const parts  = name.trim().split(' ');
     const init   = parts.map(p=>p[0]?.toUpperCase()||'').join('').slice(0,3);
-    const count  = await pool.query("SELECT COUNT(*) FROM users WHERE id LIKE 'ETU%'");
+    const count  = await pool.query("SELECT COUNT(*) FROM users WHERE id LIKE 'ETU%' AND (site_id = $1 OR site_id IS NULL)", [forcedSiteId || null]);
     const userId = 'ETU' + init + String(parseInt(count.rows[0].count)+1).padStart(2,'0');
     const hash   = await bcrypt.hash('etu123', 10);
+    
     await pool.query(
-      'INSERT INTO users (id,password,role,name,etudiant_id) VALUES ($1,$2,$3,$4,$5)',
-      [userId, hash, 'etudiant', name, etu.id]
+      'INSERT INTO users (id,password,role,name,etudiant_id,site_id) VALUES ($1,$2,$3,$4,$5,$6)',
+      [userId, hash, 'etudiant', name, etu.id, forcedSiteId || null]
     );
+    
     res.json({ ...etu, userId });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -62,7 +75,6 @@ router.delete('/:id', async (req, res) => {
 router.put('/:id/archive', async (req, res) => {
   try {
     await pool.query('UPDATE etudiants SET archive=TRUE WHERE id=$1', [req.params.id]);
-    // Désactiver aussi le compte
     await pool.query('UPDATE users SET archive=TRUE WHERE etudiant_id=$1', [req.params.id]);
     res.json({ success:true });
   } catch(e){ res.status(500).json({error:e.message}); }
@@ -77,7 +89,7 @@ router.put('/:id/restore', async (req, res) => {
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
-// POST /api/etudiants/archive-annee — archiver toute une promotion
+// POST /api/etudiants/archive-annee
 router.post('/archive-annee', async (req, res) => {
   const { anneeAcademique } = req.body;
   if (!anneeAcademique) return res.status(400).json({ error:'Annee requise' });
@@ -86,7 +98,6 @@ router.post('/archive-annee', async (req, res) => {
       'UPDATE etudiants SET archive=TRUE WHERE annee_academique=$1 AND archive IS NOT TRUE RETURNING id',
       [anneeAcademique]
     );
-    // Archiver aussi leurs comptes
     for (const row of r.rows) {
       await pool.query('UPDATE users SET archive=TRUE WHERE etudiant_id=$1', [row.id]);
     }

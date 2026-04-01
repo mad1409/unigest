@@ -16,13 +16,15 @@ function genId(name, existingIds) {
   return prefix + init + String(n).padStart(2,"0");
 }
 
-function genMatricule(annee, filiereId, etudiants, filieres) {
+function genMatricule(annee, filiereId, etudiants, filieres, siteId) {
   const filiere    = filieres.find(f => f.id === parseInt(filiereId));
   const anneeShort = (annee||"").split("/")[0].slice(-2);
+  // On compte les étudiants de cette filière, cette année, ET DE CE SITE pour éviter les doublons de matricule
   const count      = etudiants.filter(e =>
-    e.anneeAcademique === annee && e.filiereId === parseInt(filiereId)
+    e.anneeAcademique === annee && e.filiereId === parseInt(filiereId) && e.site_id === siteId && e.site_id === siteId
   ).length + 1;
-  return (filiere?.code||"ETU") + "-" + anneeShort + "-" + String(count).padStart(3,"0");
+  const prefixSite = siteId ? `S${siteId}-` : ""; // Optionnel: ajouter le site dans le matricule pour plus de clarté
+  return prefixSite + (filiere?.code||"ETU") + "-" + anneeShort + "-" + String(count).padStart(3,"0");
 }
 
 export default function SecretaireDashboard({ user, data, setData, onLogout }) {
@@ -41,7 +43,7 @@ export default function SecretaireDashboard({ user, data, setData, onLogout }) {
   return (
     <Layout user={user} role="secretaire" onLogout={onLogout} data={data}
       navItems={nav} activeTab={tab} setActiveTab={setTab}>
-      {tab==="inscrire" && <InscrireEtudiant data={data} setData={setData}/>}
+      {tab==="inscrire" && <InscrireEtudiant user={user} data={data} setData={setData}/>}
       {tab==="cartes"   && <ImprimerCartes   data={data}/>}
       {tab==="liste"    && <ListeEtudiants   data={data}/>}
       {tab==="profil"   && <div><h2 style={{fontSize:24,fontWeight:700,color:"#34d399",marginBottom:24}}>Mon profil</h2><div style={{maxWidth:500}}><ChangerMotDePasse user={user} data={data} setData={setData} color="#34d399"/></div></div>}
@@ -50,16 +52,33 @@ export default function SecretaireDashboard({ user, data, setData, onLogout }) {
 }
 
 // ── Inscription ───────────────────────────────────────
-function InscrireEtudiant({ data, setData }) {
+function InscrireEtudiant({ user, data, setData }) {
   const annees = data.parametres.anneesDisponibles || ["2024/2025"];
   const initF  = { name:"", email:"", tel:"", filiereId:data.filieres[0]?.id||"", anneeAcademique:data.parametres.anneeActive||annees[0], session:"jour" };
   const [form, setForm] = useState(initF);
   const [msg,  setMsg]  = useState(null);
+  
+  // Récupération dynamique du site_id de la secrétaire
+  const [siteId, setSiteId] = useState(null);
+
+  useEffect(() => {
+    async function getMySiteId() {
+      try {
+        const users = await api.getUsers();
+        const me = users.find(u => u.id === user?.id);
+        setSiteId(me?.site_id || null);
+      } catch(e) { console.error(e); }
+    }
+    getMySiteId();
+  }, [user?.id]);
 
   async function inscrire() {
     if (!form.name.trim()) { setMsg({type:"error",text:"Le nom est obligatoire."}); return; }
+    if (!siteId) { setMsg({type:"error",text:"Erreur: Votre compte n'est lié à aucun site. Contactez l'administrateur."}); return; }
+    
     const filiere   = data.filieres.find(f=>f.id===parseInt(form.filiereId));
-    const matricule = genMatricule(form.anneeAcademique, form.filiereId, data.etudiants, data.filieres);
+    const matricule = genMatricule(form.anneeAcademique, form.filiereId, data.etudiants, data.filieres, siteId);
+    
     try {
       const result = await api.createEtudiant({
         name:            form.name.trim(),
@@ -69,6 +88,7 @@ function InscrireEtudiant({ data, setData }) {
         anneeAcademique: form.anneeAcademique,
         session:         form.session,
         matricule,
+        site_id: siteId, // <-- ON LIE L'ÉTUDIANT AU SITE
       });
       await setData();
       setMsg({
@@ -90,7 +110,10 @@ function InscrireEtudiant({ data, setData }) {
     <div style={{maxWidth:600}}>
       <div style={{marginBottom:28}}>
         <h2 style={{fontSize:24,fontWeight:700,color:"#34d399"}}>Inscrire un etudiant</h2>
-        <p style={{color:"var(--text2)",fontSize:13,marginTop:5}}>Identifiant et matricule generes automatiquement.</p>
+        <p style={{color:"var(--text2)",fontSize:13,marginTop:5}}>
+          Identifiant et matricule generes automatiquement. 
+          {siteId && <span style={{color:"#38bdf8"}}> Site ID : {siteId}</span>}
+        </p>
       </div>
 
       {msg?.type==="success" && (
@@ -119,7 +142,7 @@ function InscrireEtudiant({ data, setData }) {
               <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Prenom Nom" style={inp}/>
               {form.name.trim()&&<div style={{fontSize:11,color:"var(--text3)",marginTop:5}}>
                 Identifiant : <strong style={{color:"#34d399"}}>{genId(form.name,data.users.map(u=>u.id))}</strong>
-                {" · "}Matricule : <strong style={{color:"#38bdf8"}}>{genMatricule(form.anneeAcademique,form.filiereId,data.etudiants,data.filieres)}</strong>
+                {" · "}Matricule : <strong style={{color:"#38bdf8"}}>{genMatricule(form.anneeAcademique,form.filiereId,data.etudiants,data.filieres, siteId)}</strong>
               </div>}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -249,7 +272,6 @@ function ImprimerCartes({ data }) {
         <p style={{color:"var(--text2)",fontSize:13,marginTop:5}}>Selectionnez les etudiants puis imprimez leurs cartes d'identifiant.</p>
       </div>
 
-      {/* Filtres */}
       <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 18px",marginBottom:16,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{position:"relative",flex:2,minWidth:160}}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)"}}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -270,7 +292,6 @@ function ImprimerCartes({ data }) {
         </div>
       </div>
 
-      {/* Barre sélection + impression */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <button onClick={selAll} style={{padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",color:"#34d399"}}>
@@ -293,7 +314,6 @@ function ImprimerCartes({ data }) {
         </button>
       </div>
 
-      {/* Grille apercu cartes */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
         {filtered.map(e=>{
           const fil  = data.filieres.find(f=>f.id===e.filiereId);
@@ -307,7 +327,6 @@ function ImprimerCartes({ data }) {
               background:isSel?"rgba(52,211,153,0.06)":"var(--bg2)",
               transition:"all 0.15s",
             }}>
-              {/* Header carte */}
               <div style={{background:"linear-gradient(135deg,#0f2a5c,#1d4ed8)",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
                   <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>
@@ -317,7 +336,6 @@ function ImprimerCartes({ data }) {
                 </div>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.6)"}}>{e.anneeAcademique}</div>
               </div>
-              {/* Corps carte */}
               <div style={{padding:"12px 14px",display:"flex",gap:10}}>
                 <div style={{width:44,height:44,borderRadius:"50%",background:"#1d4ed8",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,flexShrink:0}}>
                   {initials}
@@ -336,7 +354,6 @@ function ImprimerCartes({ data }) {
                   ))}
                 </div>
               </div>
-              {/* Checkbox visuel */}
               <div style={{padding:"6px 14px",borderTop:"1px solid var(--border)",display:"flex",alignItems:"center",gap:6}}>
                 <div style={{width:16,height:16,borderRadius:4,border:isSel?"none":"1px solid var(--border)",background:isSel?"#34d399":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   {isSel&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#042c1a" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}

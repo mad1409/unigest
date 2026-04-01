@@ -4,6 +4,7 @@ import { useState } from "react";
 
 const ROLES = [
   { id:"admin",       label:"Administrateur", color:"#f0c040", icon:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
+  { id:"admin_site", label:"Admin Site", color:"#f0c040", icon:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
   { id:"prof",        label:"Enseignant",     color:"#4f8ef7", icon:"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
   { id:"secretaire",  label:"Secretaire",     color:"#34d399", icon:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
   { id:"surveillant", label:"Surveillant",    color:"#fb923c", icon:"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" },

@@ -1,3 +1,4 @@
+import AdminSiteDashboard from "./components/admin/AdminSiteDashboard";
 
 // Mettre à jour le favicon dynamiquement
 function updateFavicon(logoUrl) {
@@ -331,6 +332,7 @@ export default function App() {
           </div>
         }>
           {user.role === "admin"       && <AdminDashboard       {...props} onReset={refreshData} onExport={()=>{}} onImport={()=>{}} />}
+          {user.role === "admin_site" && <AdminSiteDashboard {...props} onReset={refreshData} onExport={()=>{}} onImport={()=>{}} />}
           {user.role === "prof"        && <ProfDashboard        {...props}/>}
           {user.role === "etudiant"    && <EtudiantDashboard    {...props}/>}
           {user.role === "secretaire"  && <SecretaireDashboard  {...props}/>}

@@ -56,7 +56,7 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Identifiant invalide' });
   if (typeof password !== 'string' || password.length > 100)
     return res.status(400).json({ error: 'Mot de passe invalide' });
-  const rolesValides = ['admin','prof','etudiant','secretaire','surveillant'];
+  const rolesValides = ['admin','admin_site','prof','etudiant','secretaire','surveillant'];
   if (!rolesValides.includes(role))
     return res.status(400).json({ error: 'Role invalide' });
 

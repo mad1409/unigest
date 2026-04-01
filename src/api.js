@@ -96,6 +96,7 @@ export const api = {
 
   getUsers:       ()       => request('GET',    '/users'),
   createUser:     (data)   => request('POST',   '/users',    data),
+  createAdminSite:(data)   => request('POST',   '/users/admin-site', data),
   resetPassword:  (id, newPassword) => request('PUT', '/users/'+id+'/password', { newPassword }),
   deleteUser:     (id)     => request('DELETE', '/users/'+id),
 
