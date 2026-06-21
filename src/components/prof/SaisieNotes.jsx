@@ -25,10 +25,13 @@ export default function SaisieNotes({ data, setData, prof }) {
   const mesUEs = filterSemestre === "all" ? toutesUEs : toutesUEs.filter(u=>u.semestre===parseInt(filterSemestre));
 
   const ueFilieresIds = selectedUE ? (selectedUE.filiereIds||selectedUE.filiere_ids||[]) : [];
+  const profFiliereIds = prof ? (prof.filiere_ids || prof.filiereIds || []) : [];
   const filieresDispos = selectedUE
-    ? (ueFilieresIds.length > 0
-        ? data.filieres.filter(f => ueFilieresIds.includes(f.id))
-        : data.filieres)  // Si pas de filiere liee, montrer toutes
+    ? data.filieres.filter(f => {
+        const inUE   = ueFilieresIds.length === 0 || ueFilieresIds.includes(f.id);
+        const inProf = profFiliereIds.length === 0 || profFiliereIds.includes(f.id);
+        return inUE && inProf;
+      })
     : [];
 
   const etudiantsBruts = selectedFiliere

@@ -39,9 +39,15 @@ router.put('/:id', auth, admin, async (req, res) => {
 // DELETE supprimer un site
 router.delete('/:id', auth, admin, async (req, res) => {
   try {
-    // Délier les étudiants et EDT avant suppression
-    await pool.query('UPDATE etudiants SET site_id=NULL WHERE site_id=$1', [req.params.id]);
-    await pool.query('UPDATE emplois_du_temps SET site_id=NULL WHERE site_id=$1', [req.params.id]);
+    // Délier les entités liées (on ignore si la colonne n'existe pas)
+    const unlinkQueries = [
+      'UPDATE etudiants SET site_id=NULL WHERE site_id=$1',
+      'UPDATE emplois_du_temps SET site_id=NULL WHERE site_id=$1',
+      'UPDATE users SET site_id=NULL WHERE site_id=$1',
+    ];
+    for (const q of unlinkQueries) {
+      try { await pool.query(q, [req.params.id]); } catch {}
+    }
     await pool.query('DELETE FROM sites WHERE id=$1', [req.params.id]);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

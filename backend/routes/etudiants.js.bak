@@ -5,16 +5,10 @@ const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const pool   = require('../db');
 
-// GET /api/etudiants — prof voit son annexe seulement
+// GET /api/etudiants
 router.get('/', async (req, res) => {
   try {
-    let query  = 'SELECT * FROM etudiants WHERE archive IS NOT TRUE ORDER BY name';
-    let params = [];
-    if (req.user?.role === 'professeur' && req.user.annexe_id) {
-      query  = 'SELECT * FROM etudiants WHERE annexe_id=$1 AND archive IS NOT TRUE ORDER BY name';
-      params = [req.user.annexe_id];
-    }
-    const r = await pool.query(query, params);
+    const r = await pool.query('SELECT * FROM etudiants ORDER BY id');
     res.json(r.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

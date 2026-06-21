@@ -4,7 +4,7 @@ import AdminOverview from "./AdminOverview";
 import AdminNotifications from "./AdminNotifications";
 import CalendrierAcademique from "./CalendrierAcademique";
 import Deliberation from "./Deliberation";
-import GestionSites from "./GestionSites";
+import GestionAnnexes from "./GestionAnnexes";
 import RapportPDF from "./RapportPDF";
 import GestionFilieres from "./GestionFilieres";
 import GestionUE from "./GestionUE";
@@ -29,6 +29,7 @@ const ICONS = {
   profs:     svg(["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2","M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"]),
   groupes:   svg(["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2","M23 21v-2a4 4 0 0 0-3-3.87","M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z","M16 3.13a4 4 0 0 1 0 7.75"]),
   edt:       svg(["M8 2v4M16 2v4M3 10h18","M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"]),
+  annexes:   svg(["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10","M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"]),
   import:    svg(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M7 10l5 5 5-5","M12 15V3"]),
   profil:    svg(["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2","M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"]),
 };
@@ -66,7 +67,7 @@ export default function AdminDashboard({
     { id: "import",        icon: ICONS.import,    label: "Import CSV"       },
     { id: "notifications", icon: ICONS.overview,  label: "Notifications", badge: nbAlertes },
     { id: "calendrier",    icon: ICONS.edt,       label: "Calendrier"     },
-    { id: "sites",         icon: ICONS.overview,  label: "Sites"          },
+    { id: "annexes",       icon: ICONS.annexes,   label: "Annexes"        },
     { id: "deliberation",  icon: ICONS.overview,  label: "Deliberation"   },
     { id: "rapports",      icon: ICONS.overview,  label: "Rapports & Exports" },
     { id: "profil",    icon: ICONS.profil,    label: "Mon profil"       },
@@ -103,7 +104,7 @@ export default function AdminDashboard({
       {tab === "import"        && <ImportCSV          data={data} setData={setData} />}
       {tab === "notifications" && <AdminNotifications data={data} />}
       {tab === "calendrier"    && <CalendrierAcademique data={data} />}
-      {tab === "sites"         && <GestionSites />}
+      {tab === "annexes"       && <GestionAnnexes data={data} setData={setData} />}
       {tab === "deliberation"  && <Deliberation data={data} />}
       {tab === "rapports"      && <RapportPDF data={data} />}
       {tab === "profil"    && <AdminProfil      user={user} data={data} setData={setData} />}

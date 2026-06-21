@@ -143,7 +143,6 @@ async function initDB() {
 }
 
 // ── Routes publiques ────────────────────────
-app.use('/api/sites',       require('./routes/sites'));
 app.use('/api/emails',      require('./routes/emails'));
 app.use('/api/calendrier',    require('./routes/calendrier'));
 app.use('/api/deliberations', require('./routes/deliberations'));
@@ -183,6 +182,7 @@ app.use('/api/users',       require('./routes/users'));
 app.use('/api/groupes',     require('./routes/groupes'));
 app.use('/api/professeurs', require('./routes/professeurs'));
 app.use('/api/parametres',  require('./routes/parametres'));
+app.use('/api/annexes',    require('./routes/annexes'));
 
 app.use((err, req, res, next) => {
   console.error(err.message);

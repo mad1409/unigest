@@ -6,13 +6,13 @@ import {
   btnPrimary, modalTitle, modalFooter,
 } from "./GestionFilieres";
 
-const initForm = { name:"", tel:"", email:"", ueIds:[], siteIds:[], id:null };
+const initForm = { name:"", tel:"", email:"", ueIds:[], siteIds:[], filiereIds:[], cycle:"Licence", id:null };
 
 export default function GestionProfs({ data, setData }) {
   const [sites, setSites] = useState([]);
 
   useEffect(() => {
-    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+    api.getAnnexes().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
   }, []);
   const [filterSite, setFilterSite] = useState("all");
   const [modal,  setModal]  = useState(false);
@@ -22,6 +22,7 @@ export default function GestionProfs({ data, setData }) {
   const [msg,      setMsg]      = useState(null);
   const [searchUE, setSearchUE] = useState("");
   const [searchSite, setSearchSite] = useState("");
+  const [searchFiliere, setSearchFiliere] = useState("");
 
   const filtered = useMemo(() =>
     (data.professeurs||[]).filter(p =>
@@ -40,7 +41,7 @@ export default function GestionProfs({ data, setData }) {
   }
 
   function openEdit(p) {
-    setForm({ id:p.id, name:p.name, tel:p.tel||"", email:p.email||"", ueIds:p.matieres||p.ueIds||[], siteIds: p.site_ids || [] });
+    setForm({ id:p.id, name:p.name, tel:p.tel||"", email:p.email||"", ueIds:p.matieres||p.ueIds||[], siteIds: p.site_ids || [], filiereIds: p.filiere_ids || [], cycle: p.cycle || "Licence" });
     setMsg(null);
     setSearchUE("");
     setSearchSite("");
@@ -51,6 +52,13 @@ export default function GestionProfs({ data, setData }) {
     setForm(f => ({
       ...f,
       ueIds: f.ueIds.includes(id) ? f.ueIds.filter(x=>x!==id) : [...f.ueIds, id],
+    }));
+  }
+
+  function toggleFiliere(id) {
+    setForm(f => ({
+      ...f,
+      filiereIds: f.filiereIds.includes(id) ? f.filiereIds.filter(x=>x!==id) : [...f.filiereIds, id],
     }));
   }
 
@@ -65,7 +73,7 @@ export default function GestionProfs({ data, setData }) {
     if (!form.name.trim()) { setMsg({type:"error",text:"Le nom est obligatoire."}); return; }
     setLoading(true);
     try {
-      const payload = { name:form.name.trim(), tel:form.tel, email:form.email, matieres:form.ueIds, siteIds: form.siteIds };
+      const payload = { name:form.name.trim(), tel:form.tel, email:form.email, matieres:form.ueIds, siteIds: form.siteIds, cycle: form.cycle, filiereIds: form.filiereIds };
       if (form.id) {
         await api.updateProf(form.id, payload);
       } else {
@@ -302,6 +310,30 @@ export default function GestionProfs({ data, setData }) {
               </Field>
             </div>
             
+            <Field label="Cycle d'enseignement">
+              <select style={inputStyle} value={form.cycle}
+                onChange={e=>setForm({...form, cycle:e.target.value, filiereIds:[]})}>
+                <option value="Licence">Licence (L1 – L3)</option>
+                <option value="Master">Master (M1 – M2)</option>
+                <option value="Les deux">Les deux cycles</option>
+              </select>
+            </Field>
+
+            <MultiSelect
+              label="Classes assignées (filières)"
+              items={(data.filieres||[]).filter(f =>
+                form.cycle === 'Les deux' || f.cycle === form.cycle
+              )}
+              selectedIds={form.filiereIds}
+              onToggle={toggleFiliere}
+              searchVal={searchFiliere}
+              onSearchChange={setSearchFiliere}
+              displayKey="name"
+              subKey="code"
+              badgeColor="#818cf8"
+              placeholder="Rechercher une filière..."
+            />
+
             <MultiSelect 
               label="Sites d'affectation"
               items={sites}

@@ -1,0 +1,11 @@
+--- a/src/api.js
++++ b/src/api.js
+@@ -10,6 +10,7 @@
+   if (token) {
+     config.headers.Authorization = `Bearer ${token}`;
+   }
++  if (localStorage.getItem('unigest_site_actif')) {
++    config.headers['x-site-actif'] = localStorage.getItem('unigest_site_actif');
++  }
+   return config;
+ });

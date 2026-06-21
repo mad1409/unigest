@@ -8,7 +8,7 @@ export default function RapportPDF({ data }) {
   const [sites,         setSites]         = useState([]);
 
   useEffect(() => {
-    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+    api.getAnnexes().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
   }, []);
   const [type, setType] = useState("enseignants");
 

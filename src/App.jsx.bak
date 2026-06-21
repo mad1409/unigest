@@ -140,7 +140,6 @@ function normalize(raw) {
         noteClasse: n.note_classe != null ? parseFloat(n.note_classe) : (n.noteClasse ?? null),
         noteExamen: n.note_examen != null ? parseFloat(n.note_examen) : (n.noteExamen ?? null),
       })),
-      annexes: (raw.annexes||[]),
       users: (raw.users||[]).map(u => ({
         ...u,
         profId:     u.prof_id     ?? u.profId     ?? null,
@@ -222,7 +221,7 @@ export default function App() {
   async function fetchData(token, silent = false) {
     if (!silent) setStatus("loading");
     try {
-      const [filieres, etudiants, ues, notes, edt, groupes, professeurs, users, parametres, annexes] =
+      const [filieres, etudiants, ues, notes, edt, groupes, professeurs, users, parametres] =
         await Promise.all([
           api.getFilieres(),
           api.getEtudiants(),
@@ -233,10 +232,9 @@ export default function App() {
           api.getProfesseurs(),
           api.getUsers(),
           api.getParametres(),
-          api.getAnnexes().catch(()=>[]),
         ]);
       const normalized = normalize({ filieres, etudiants, ues, notes,
-        emploisDuTemps:edt, groupes, professeurs, users, parametres, annexes });
+        emploisDuTemps:edt, groupes, professeurs, users, parametres });
       setData(normalized);
       // Mettre à jour favicon et titre
       if (normalized?.parametres?.logo) {

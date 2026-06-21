@@ -78,14 +78,14 @@ router.post('/login', async (req, res) => {
     clearAttempts(id);
     const token = jwt.sign(
       { id: user.id, role: user.role, name: user.name,
-        profId: user.prof_id, etudiantId: user.etudiant_id, annexe_id: user.annexe_id },
+        profId: user.prof_id, etudiantId: user.etudiant_id },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
     await logAudit(req, 'LOGIN', 'users', user.id, { role: user.role });
     res.json({ token, user: {
       id: user.id, role: user.role, name: user.name,
-      profId: user.prof_id, etudiantId: user.etudiant_id, annexe_id: user.annexe_id
+      profId: user.prof_id, etudiantId: user.etudiant_id
     }});
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -124,7 +124,7 @@ router.post('/refresh', async (req, res) => {
     const newToken = require('jsonwebtoken').sign(
       { id:decoded.id, role:decoded.role, name:decoded.name,
         profId:decoded.profId, etudiantId:decoded.etudiantId,
-        tenantId:decoded.tenantId, tenantCode:decoded.tenantCode, annexe_id:decoded.annexe_id },
+        tenantId:decoded.tenantId, tenantCode:decoded.tenantCode },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );

@@ -20,21 +20,21 @@ async function genId(role, name, pool) {
 // GET /api/users - liste tous les utilisateurs
 router.get('/', async (req, res) => {
   try {
-    const r = await pool.query('SELECT id,role,name,prof_id,etudiant_id,site_id,annexe_id FROM users ORDER BY role,name');
+    const r = await pool.query('SELECT id,role,name,prof_id,etudiant_id,site_id FROM users ORDER BY role,name');
     res.json(r.rows);
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
 // POST /api/users - créer un utilisateur (générique)
 router.post('/', async (req, res) => {
-  const { id, password, role, name, profId, etudiantId, site_id, annexe_id } = req.body;
+  const { id, password, role, name, profId, etudiantId, site_id } = req.body;
   try {
     const userId = id || await genId(role, name, pool);
     if (!userId) return res.status(400).json({error:'Impossible de generer un identifiant'});
     const hash = await bcrypt.hash(password || 'pass123', 10);
     const r = await pool.query(
-      'INSERT INTO users(id,password,role,name,prof_id,etudiant_id,site_id,annexe_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,role,name,prof_id,etudiant_id,site_id,annexe_id',
-      [userId, hash, role, name, profId||null, etudiantId||null, site_id||null, annexe_id||null]
+      'INSERT INTO users(id,password,role,name,prof_id,etudiant_id,site_id) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,role,name,prof_id,etudiant_id,site_id',
+      [userId, hash, role, name, profId||null, etudiantId||null, site_id||null]
     );
     res.json({...r.rows[0], generatedId: userId});
   } catch(e){ 
@@ -66,7 +66,7 @@ router.post('/admin-site', auth, async (req, res) => {
       `INSERT INTO users (id, password, role, name, site_id) 
        VALUES ($1, $2, 'admin_site', $3, $4) 
        RETURNING id, name, role, site_id`,
-      [id, hash, name, site_id||null, annexe_id||null]
+      [id, hash, name, site_id]
     );
     
     res.json({ 

@@ -9,7 +9,7 @@ export default function AdminOverview({ data }) {
   const [filterSite, setFilterSite] = useState("all");
 
   useEffect(() => {
-    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+    api.getAnnexes().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
   }, []);
   const FIL_PER_PAGE = 8;
   const filieres       = data.filieres       || [];

@@ -125,7 +125,7 @@ export default function GestionEDT({ data, setData }) {
   const [filterSite,   setFilterSite]   = useState("all");
 
   useEffect(() => {
-    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+    api.getAnnexes().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
   }, []);
   const [slotModal,   setSlotModal]   = useState(false);
   const [vueGrille,   setVueGrille]   = useState(false);

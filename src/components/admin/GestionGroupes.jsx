@@ -9,7 +9,7 @@ export default function GestionGroupes({ data, setData }) {
   const [sites,  setSites]  = useState([]);
 
   useEffect(() => {
-    api.getSites().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
+    api.getAnnexes().then(r => setSites(Array.isArray(r) ? r : [])).catch(()=>{});
   }, []);
 
   const [modal,         setModal]         = useState(false);
