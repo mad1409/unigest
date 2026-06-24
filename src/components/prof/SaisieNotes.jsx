@@ -17,10 +17,13 @@ export default function SaisieNotes({ data, setData, prof }) {
 
   const [filterSemestre, setFilterSemestre] = useState("all");
   const [filterSession,   setFilterSession]   = useState("all");
-  const profUeIds = prof ? (prof.ueIds || prof.matieres || []) : [];
-  const toutesUEs = (prof && profUeIds.length > 0)
-    ? data.ues.filter(u => profUeIds.includes(u.id))
-    : data.ues;
+  // prof.matieres = IDs de matières assignées
+  const profMatiereIds = prof ? (prof.matieres || prof.ueIds || []) : [];
+  // Afficher uniquement les UEs qui contiennent au moins une matière du prof
+  const toutesUEs = data.ues.filter(u =>
+    profMatiereIds.length === 0 ||
+    (u.matieres||[]).some(m => profMatiereIds.includes(m.id))
+  );
   const semestresDispos = [...new Set(toutesUEs.map(u=>u.semestre))].sort((a,b)=>a-b);
   const mesUEs = filterSemestre === "all" ? toutesUEs : toutesUEs.filter(u=>u.semestre===parseInt(filterSemestre));
 

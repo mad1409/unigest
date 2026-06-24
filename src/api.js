@@ -59,6 +59,8 @@ export const api = {
   createEtudiant: (data)   => request('POST',   '/etudiants',    data),
   updateEtudiant: (id, d)  => request('PUT',    '/etudiants/'+id, d),
   deleteEtudiant: (id)     => request('DELETE', '/etudiants/'+id),
+  archivePromotion:(annee)  => request('POST',   '/etudiants/archive-annee', { anneeAcademique: annee }),
+  restoreEtudiant: (id)    => request('PUT',    '/etudiants/'+id+'/restore'),
 
   getUEs:         ()       => request('GET',    '/ues'),
   createUE:       (data)   => request('POST',   '/ues',    data),
@@ -103,5 +105,6 @@ export const api = {
   createAnnexe: (d)     => request('POST',   '/annexes', d),
   updateAnnexe: (id, d) => request('PUT',    '/annexes/'+id, d),
   deleteAnnexe: (id)    => request('DELETE', '/annexes/'+id),
-  transfert:    (d)     => request('PUT',    '/annexes/transfer', d),
+  transfert:        (d) => request('PUT', '/annexes/transfer', d),
+  transferFiliere:  (d) => request('PUT', '/annexes/transfer-filiere', d),
 };

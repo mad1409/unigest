@@ -36,8 +36,22 @@ body {
 
 /* ── Inputs ── */
 input, select, textarea { font-family: 'Outfit', sans-serif; color-scheme: dark; }
-select, select option { background-color: #12162a !important; color: #e8e8f0 !important; }
-select:focus { outline: none; border-color: rgba(255,255,255,0.3) !important; }
+select {
+  background-color: #0f1624 !important;
+  color: #e8e8f0 !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+select option {
+  background-color: #0f1624 !important;
+  color: #e8e8f0 !important;
+}
+select:focus { outline: none; border-color: rgba(255,255,255,0.35) !important; }
 input[type="text"], input[type="email"], input[type="password"],
 input[type="number"], input[type="tel"], input[type="time"], textarea {
   background-color: #12162a !important;
@@ -114,7 +128,7 @@ button { font-family: 'Outfit', sans-serif; cursor: pointer; }
 }
 
 /* ── Glass cards ── */
-.glass-card, [style*="var(--bg2)"] {
+.glass-card {
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
 }

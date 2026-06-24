@@ -5,8 +5,10 @@ const auth    = require('../middleware/auth');
 const adminMw = require('../middleware/admin');
 
 async function genProfId(name, client) {
-  const parts = (name||"").trim().split(" ").filter(Boolean);
-  const init  = parts.map(p=>(p[0]||"").toUpperCase()).join("").slice(0,3).padEnd(3,"X");
+  const parts  = (name||"").trim().split(" ").filter(Boolean);
+  const prenom = (parts[0]||"X")[0].toUpperCase();
+  const nom    = (parts[1]||parts[0]||"XX").slice(0,2).toUpperCase();
+  const init   = prenom + nom;
   let n = 1;
   while (true) {
     const id = 'ENS' + init + String(n).padStart(2,"0");
@@ -25,7 +27,7 @@ router.get('/', auth, async (req, res) => {
 
 // POST — crée le professeur + le compte utilisateur automatiquement
 router.post('/', auth, adminMw, async (req, res) => {
-  const { name, tel, matieres, siteIds, cycle, filiereIds, annexe_id } = req.body;
+  const { name, tel, matieres, siteIds, cycle, filiereIds, annexe_id, password } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -42,14 +44,14 @@ router.post('/', auth, adminMw, async (req, res) => {
     const userId = await genProfId(name, client);
 
     // 3. Créer le compte utilisateur (mot de passe par défaut : prof123)
-    const hash = await bcrypt.hash('prof123', 10);
+    const hash = await bcrypt.hash(password || 'prof123', 10);
     await client.query(
-      'INSERT INTO users (id, password, role, name, prof_id, annexe_id) VALUES ($1,$2,$3,$4,$5,$6)',
-      [userId, hash, 'prof', name, prof.id, annexe_id||null]
+      'INSERT INTO users (id, password, role, name, prof_id, annexe_id, must_change_password) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [userId, hash, 'prof', name, prof.id, annexe_id||null, true]
     );
 
     await client.query('COMMIT');
-    res.json({ ...prof, userId, defaultPassword: 'prof123' });
+    res.json({ ...prof, userId, defaultPassword: '000000' });
   } catch(e) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: e.message });
@@ -57,7 +59,7 @@ router.post('/', auth, adminMw, async (req, res) => {
 });
 
 router.put('/:id', auth, adminMw, async (req, res) => {
-  const { name, tel, matieres, siteIds, cycle, filiereIds, annexe_id } = req.body;
+  const { name, tel, matieres, siteIds, cycle, filiereIds, annexe_id, password } = req.body;
   try {
     const r = await pool.query(
       `UPDATE professeurs SET name=$1, tel=$2, matieres=$3, site_ids=$4,

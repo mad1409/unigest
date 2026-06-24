@@ -194,3 +194,12 @@ initDB().then(() => {
     console.log('UniGest API sur le port ' + PORT);
   });
 });
+
+// Vérification automatique des semestres chaque nuit
+const { updateSemestresAuto } = require('./utils/autoSemestre');
+setInterval(async () => {
+  const now = new Date();
+  if (now.getHours() === 0 && now.getMinutes() < 5) {
+    await updateSemestresAuto();
+  }
+}, 5 * 60 * 1000); // Vérifier toutes les 5 minutes

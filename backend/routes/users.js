@@ -4,10 +4,13 @@ const bcrypt = require('bcryptjs');
 const pool   = require('../db');
 
 async function genId(role, name, pool) {
-  const prefixes = { admin:"ADM", prof:"ENS", secretaire:"SEC", surveillant:"SUR", etudiant:"ETU", admin_site:"ADS" };
+  const prefixes = { admin:"ADM", prof:"ENS", secretaire:"SEC", surveillant:"SUR", etudiant:"ETU", admin_site:"ADM" };
   const prefix   = prefixes[role] || "USR";
   const parts    = (name||"").trim().split(" ").filter(Boolean);
-  const init     = parts.map(p => (p[0]||"").toUpperCase()).join("").slice(0,3).padEnd(3,"X");
+  // Prenom[0] + Nom[0..2] = 3 lettres max
+  const prenom   = (parts[0]||"X")[0].toUpperCase();
+  const nom      = (parts[1]||parts[0]||"XX").slice(0,2).toUpperCase();
+  const init     = prenom + nom;
   let n = 1;
   while (true) {
     const id = prefix + init + String(n).padStart(2,"0");

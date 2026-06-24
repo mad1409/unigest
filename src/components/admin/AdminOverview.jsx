@@ -24,14 +24,14 @@ export default function AdminOverview({ data }) {
   // Stats par site
   const statsSites = sites.map(s => ({
     nom: s.nom,
-    nbEtu: etudiants.filter(e => String(e.site_id) === String(s.id)).length,
-    nbJour: etudiants.filter(e => String(e.site_id) === String(s.id) && e.session==="jour").length,
-    nbSoir: etudiants.filter(e => String(e.site_id) === String(s.id) && e.session==="soir").length,
+    nbEtu: etudiants.filter(e => String(e.annexe_id) === String(s.id)).length,
+    nbJour: etudiants.filter(e => String(e.annexe_id) === String(s.id) && e.session==="jour").length,
+    nbSoir: etudiants.filter(e => String(e.annexe_id) === String(s.id) && e.session==="soir").length,
   }));
 
   const etuFiltres = filterSite === "all"
     ? etudiants
-    : etudiants.filter(e => String(e.site_id) === String(filterSite));
+    : etudiants.filter(e => String(e.annexe_id) === String(filterSite));
 
   const stats = [
     { label:"Filieres",         value:filieres.length,       color:"#f0c040", sub:"cycles d'etude" },
@@ -82,7 +82,7 @@ export default function AdminOverview({ data }) {
               background:filterSite==="all"?"rgba(240,192,64,0.15)":"rgba(255,255,255,0.04)",
               border:filterSite==="all"?"1.5px solid rgba(240,192,64,0.5)":"1px solid var(--border)",
               color:filterSite==="all"?"#f0c040":"var(--text2)",
-            }}>Tous les sites</button>
+            }}>Toutes les annexes</button>
             {sites.map(s=>(
               <button key={s.id} onClick={()=>setFilterSite(s.id)} style={{
                 padding:"7px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",
@@ -236,7 +236,7 @@ export default function AdminOverview({ data }) {
       {statsSites.length > 0 && (
         <div style={{marginTop:24}}>
           <h3 style={{fontFamily:"'Lora',serif",fontSize:18,fontWeight:700,color:"#f0c040",marginBottom:14}}>
-            Repartition par site
+            Repartition par annexe
           </h3>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
             {statsSites.map(s=>(

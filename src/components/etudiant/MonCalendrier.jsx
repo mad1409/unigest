@@ -63,7 +63,40 @@ export default function MonCalendrier({ data }) {
         <p style={{color:"var(--text2)",fontSize:13,marginTop:4}}>Année {annee}</p>
       </div>
 
-      {prochains.length > 0 && (
+      {/* Onglets */}
+      <div style={{ borderBottom:"1px solid var(--border)", marginBottom:20 }}>
+        {[{id:"calendrier",label:"📅 Calendrier"},{id:"modules",label:"📚 Modules"}].map(t => (
+          <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{
+            padding:"8px 18px", border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
+            borderRadius:"8px 8px 0 0", marginRight:4,
+            background: activeTab===t.id ? "var(--bg2)" : "transparent",
+            color: activeTab===t.id ? "#34d399" : "var(--text3)",
+            borderBottom: activeTab===t.id ? "2px solid #34d399" : "2px solid transparent",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {activeTab==="modules" && (
+        <div>
+          {modules.length === 0 ? (
+            <div style={{textAlign:"center",padding:40,color:"var(--text3)"}}>Aucun module planifié</div>
+          ) : modules.map(m => {
+            const statut = m.statut==="en_cours" ? {label:"En cours",color:"#34d399"} : m.statut==="termine" ? {label:"Terminé",color:"#94a3b8"} : {label:"Planifié",color:"#38bdf8"};
+            return (
+              <div key={m.id} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderLeft:`4px solid ${statut.color}`,borderRadius:12,padding:"16px 20px",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <span style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>{m.nom}</span>
+                  <span style={{padding:"2px 9px",borderRadius:6,fontSize:10,fontWeight:700,background:statut.color+"20",color:statut.color}}>{statut.label}</span>
+                </div>
+                {m.prof_name && <div style={{fontSize:12,color:"#38bdf8",marginBottom:4}}>👨‍🏫 {m.prof_name}</div>}
+                <div style={{fontSize:12,color:"var(--text3)"}}>⏱ {m.heures}h — {new Date(m.date_debut).toLocaleDateString("fr-FR")} → {new Date(m.date_fin).toLocaleDateString("fr-FR")}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {activeTab==="calendrier" && prochains.length > 0 && (
         <div style={{background:"rgba(52,211,153,0.06)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:"16px 18px",marginBottom:20}}>
           <div style={{fontSize:12,fontWeight:700,color:"#34d399",marginBottom:12,textTransform:"uppercase",letterSpacing:1}}>
             Prochains événements (30 jours)
@@ -107,7 +140,7 @@ export default function MonCalendrier({ data }) {
 
       <div style={{fontSize:15,fontWeight:700,color:"var(--text)",marginBottom:12}}>{MOIS[moisActif]}</div>
 
-      {evtsMois.length === 0 ? (
+      {activeTab==="calendrier" && evtsMois.length === 0 ? (
         <div style={{textAlign:"center",padding:"50px",color:"var(--text3)",background:"var(--bg2)",borderRadius:14,border:"1px solid var(--border)"}}>
           Aucun événement en {MOIS[moisActif]}
         </div>

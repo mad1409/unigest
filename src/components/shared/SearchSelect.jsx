@@ -67,9 +67,10 @@ export default function SearchSelect({
   };
 
   const dropStyle = {
-    position:"absolute", top:"calc(100% + 4px)", left:0, right:0, zIndex:9999,
-    background:"var(--bg2, #111520)", border:"1px solid var(--border, rgba(255,255,255,0.1))",
-    borderRadius:10, boxShadow:"0 8px 24px rgba(0,0,0,0.5)",
+    position:"absolute", top:"calc(100% + 4px)", left:0, right:0, zIndex:99999,
+    background:"#0f1624",
+    border:"1px solid rgba(255,255,255,0.15)",
+    borderRadius:10, boxShadow:"0 12px 40px rgba(0,0,0,0.8)",
     maxHeight:260, display:"flex", flexDirection:"column", overflow:"hidden",
   };
 
@@ -106,7 +107,7 @@ export default function SearchSelect({
               </svg>
               <input ref={inputRef} value={query} onChange={e=>{setQuery(e.target.value);setActive(-1);}}
                 placeholder={placeholder}
-                style={{width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,0.07)",
+                style={{width:"100%",boxSizing:"border-box",background:"#162030",
                   border:"1px solid var(--border,rgba(255,255,255,0.1))",borderRadius:6,
                   padding:"6px 8px 6px 28px",color:"var(--text,#fff)",fontSize:12,outline:"none"}}
               />

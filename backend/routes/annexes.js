@@ -2,7 +2,7 @@ const router   = require('express').Router();
 const pool     = require('../db');
 const adminMw  = require('../middleware/admin');
 
-// GET /api/annexes — liste avec stats
+// GET /api/annexes
 router.get('/', async (req, res) => {
   try {
     const r = await pool.query(`
@@ -16,20 +16,20 @@ router.get('/', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/annexes — créer (admin seulement)
+// POST /api/annexes
 router.post('/', adminMw, async (req, res) => {
   const { nom, adresse } = req.body;
   if (!nom) return res.status(400).json({ error: 'Nom requis' });
   try {
     const r = await pool.query(
-      'INSERT INTO annexes (nom, adresse, tenant_id) VALUES ($1,$2,$3) RETURNING *',
-      [nom, adresse || null, req.user.tenant_id || null]
+      'INSERT INTO annexes (nom, adresse) VALUES ($1,$2) RETURNING *',
+      [nom, adresse || null]
     );
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// PUT /api/annexes/transfer — transfert en 1 clic (avant /:id pour éviter conflit)
+// PUT /api/annexes/transfer — transfert individuel (étudiant ou professeur)
 router.put('/transfer', adminMw, async (req, res) => {
   const { type, id, annexe_id } = req.body;
   if (!type || !id || !annexe_id)
@@ -38,13 +38,15 @@ router.put('/transfer', adminMw, async (req, res) => {
   try {
     await client.query('BEGIN');
     if (type === 'etudiant') {
-      await client.query('UPDATE etudiants SET annexe_id=$1 WHERE id=$2', [annexe_id, id]);
-      await client.query('UPDATE users SET annexe_id=$1 WHERE etudiant_id=$2', [annexe_id, id]);
+      await client.query('UPDATE etudiants SET annexe_id=$1 WHERE id=$2', [parseInt(annexe_id), parseInt(id)]);
+      await client.query('UPDATE users SET annexe_id=$1 WHERE etudiant_id=$2', [parseInt(annexe_id), parseInt(id)]);
     } else if (type === 'professeur') {
-      await client.query('UPDATE professeurs SET annexe_id=$1 WHERE id=$2', [annexe_id, id]);
-      await client.query('UPDATE users SET annexe_id=$1 WHERE prof_id=$2', [annexe_id, id]);
+      await client.query('UPDATE professeurs SET annexe_id=$1 WHERE id=$2', [parseInt(annexe_id), parseInt(id)]);
+      await client.query('UPDATE users SET annexe_id=$1 WHERE prof_id=$2', [parseInt(annexe_id), parseInt(id)]);
+    } else if (type === 'surveillant') {
+      await client.query('UPDATE users SET annexe_id=$1 WHERE id=$2', [parseInt(annexe_id), id]);
     } else {
-      return res.status(400).json({ error: 'Type invalide — utiliser etudiant ou professeur' });
+      return res.status(400).json({ error: 'Type invalide' });
     }
     await client.query('COMMIT');
     res.json({ success: true });
@@ -54,7 +56,43 @@ router.put('/transfer', adminMw, async (req, res) => {
   } finally { client.release(); }
 });
 
-// PUT /api/annexes/:id — modifier
+// PUT /api/annexes/transfer-filiere — transfert filière entière (sans suppression de comptes)
+router.put('/transfer-filiere', adminMw, async (req, res) => {
+  const { filiere_id, annexe_id, session } = req.body;
+  if (!filiere_id || !annexe_id)
+    return res.status(400).json({ error: 'filiere_id et annexe_id requis' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Filtrer par session si précisé
+    const sessionFilter = session && session !== 'Tous' ? ' AND session=$3' : '';
+    const params = session && session !== 'Tous'
+      ? [parseInt(annexe_id), parseInt(filiere_id), session]
+      : [parseInt(annexe_id), parseInt(filiere_id)];
+    await client.query(
+      'UPDATE etudiants SET annexe_id=$1 WHERE filiere_id=$2' + sessionFilter,
+      params
+    );
+    await client.query(
+      `UPDATE users SET annexe_id=$1 WHERE etudiant_id IN (
+        SELECT id FROM etudiants WHERE filiere_id=$2${session && session !== 'Tous' ? ' AND session=$3' : ''}
+      )`,
+      params
+    );
+    const nbParams = session && session !== 'Tous' ? [parseInt(filiere_id), session] : [parseInt(filiere_id)];
+    const nb = await client.query(
+      'SELECT COUNT(*) FROM etudiants WHERE filiere_id=$1' + (session && session !== 'Tous' ? ' AND session=$2' : ''),
+      nbParams
+    );
+    await client.query('COMMIT');
+    res.json({ success: true, nb_etudiants: parseInt(nb.rows[0].count) });
+  } catch(e) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: e.message });
+  } finally { client.release(); }
+});
+
+// PUT /api/annexes/:id
 router.put('/:id', adminMw, async (req, res) => {
   const { nom, adresse } = req.body;
   try {
@@ -70,16 +108,11 @@ router.put('/:id', adminMw, async (req, res) => {
 // DELETE /api/annexes/:id
 router.delete('/:id', adminMw, async (req, res) => {
   try {
-    const unlinks = [
-      'UPDATE users            SET annexe_id=NULL WHERE annexe_id=$1',
-      'UPDATE etudiants        SET annexe_id=NULL WHERE annexe_id=$1',
-      'UPDATE professeurs      SET annexe_id=NULL WHERE annexe_id=$1',
-      'UPDATE emplois_du_temps SET annexe_id=NULL WHERE annexe_id=$1',
-      'UPDATE edt_slots        SET annexe_id=NULL WHERE annexe_id=$1',
-    ];
-    for (const q of unlinks) {
-      try { await pool.query(q, [req.params.id]); } catch {}
-    }
+    const check = await pool.query(
+      'SELECT COUNT(*) FROM etudiants WHERE annexe_id=$1', [req.params.id]
+    );
+    if (parseInt(check.rows[0].count) > 0)
+      return res.status(400).json({ error: 'Des étudiants sont rattachés à cette annexe' });
     await pool.query('DELETE FROM annexes WHERE id=$1', [req.params.id]);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

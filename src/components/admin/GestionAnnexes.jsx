@@ -1,248 +1,188 @@
-import { useState, useEffect } from "react";
-import { api } from "../../api";
+import React, { useState } from 'react';
 
-const inp = {
-  width:"100%", boxSizing:"border-box", background:"rgba(255,255,255,0.05)",
-  border:"1px solid var(--border)", borderRadius:9, padding:"10px 14px",
-  color:"var(--text)", fontSize:13, marginBottom:10,
-};
-const btnPrimary = {
-  background:"#f0c040", border:"none", borderRadius:9,
-  padding:"10px 22px", color:"#1a1200", fontSize:13, fontWeight:700, cursor:"pointer",
-};
-const actionBtn = (color) => ({
-  padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer",
-  fontSize:12, fontWeight:600, background:color+"20", color,
-});
+const inp = { padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", width: "100%", marginBottom: 10, fontSize: 14 };
+const btnPrimary = { padding: "12px 20px", background: "#f0c040", color: "#1a1200", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14 };
+const btnDanger  = { padding: "8px 14px", background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 };
+const btnEdit    = { padding: "8px 14px", background: "rgba(240,192,64,0.12)", color: "#f0c040", border: "1px solid rgba(240,192,64,0.3)", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 };
 
-export default function GestionAnnexes({ data, setData }) {
-  const [annexes,     setAnnexes]     = useState([]);
-  const [etudiants,   setEtudiants]   = useState([]);
-  const [professeurs, setProfesseurs] = useState([]);
-  const [users,       setUsers]       = useState([]);
-  const [modal,       setModal]       = useState(false);
-  const [editing,     setEditing]     = useState(null);
-  const [form,        setForm]        = useState({ nom:"", adresse:"" });
-  const [loading,     setLoading]     = useState(false);
-  const [message,     setMessage]     = useState({ text:"", type:"" });
-  const [activeTab,   setActiveTab]   = useState("annexes");
-  const [survForm,    setSurvForm]    = useState({ id:"", password:"", name:"", annexe_id:"" });
-  const [transfert,   setTransfert]   = useState({ type:"etudiant", id:"", annexe_id:"" });
-  const [pwdTarget,   setPwdTarget]   = useState(null);
-  const [newPwd,      setNewPwd]      = useState("");
+export default function GestionAnnexes({ data = {}, setData, api, charger = async () => {}, showMsg = (m) => alert(m) }) {
+  const [activeTab, setActiveTab] = useState("annexes");
+  const [loading, setLoading] = useState(false);
+  const [transfert, setTransfert] = useState({ type: "etudiant", id: "", annexe_id: "" });
+  const [transfertType, setTransfertType] = useState("etudiant");
+  const [filterCycle, setFilterCycle] = useState("Tous");
+  const [filterFiliere, setFilterFiliere] = useState("");
+  const [filterSession,  setFilterSession]  = useState("Tous");
+  const [filterSessionF, setFilterSessionF] = useState("Tous");
+  const [tFiliere, setTFiliere] = useState({ filiere_id: "", annexe_id: "" });
+  const [tSurv, setTSurv] = useState({ id: "", annexe_id: "" });
 
-  useEffect(() => { charger(); }, []);
+  const [showForm, setShowForm] = useState(false);
+  const [editAnnexe, setEditAnnexe] = useState(null);
+  const [formAnnexe, setFormAnnexe] = useState({ nom: "", adresse: "" });
 
-  async function charger() {
-    try {
-      const [ann, etu, profs, usrs] = await Promise.all([
-        api.getAnnexes().catch(()=>[]),
-        api.getEtudiants().catch(()=>[]),
-        api.getProfesseurs().catch(()=>[]),
-        api.getUsers().catch(()=>[]),
-      ]);
-      setAnnexes(ann||[]); setEtudiants(etu||[]);
-      setProfesseurs(profs||[]); setUsers(usrs||[]);
-    } catch(e) { showMsg("Erreur : " + e.message); }
+  const annexes   = data?.annexes   || [];
+  const etudiants = data?.etudiants || [];
+  const users     = data?.users     || [];
+
+  function getAnnexeName(id) {
+    const a = annexes.find(x => String(x.id) === String(id));
+    return a ? a.nom : "";
   }
 
-  function showMsg(text, type="error") {
-    setMessage({ text, type });
-    setTimeout(() => setMessage({ text:"", type:"" }), 5000);
+  function openCreate() {
+    setEditAnnexe(null);
+    setFormAnnexe({ nom: "", adresse: "" });
+    setShowForm(true);
   }
 
-  function openNew()   { setForm({ nom:"", adresse:"" }); setEditing(null); setModal(true); }
-  function openEdit(a) { setForm({ nom:a.nom, adresse:a.adresse||"" }); setEditing(a.id); setModal(true); }
+  function openEdit(a) {
+    setEditAnnexe(a);
+    setFormAnnexe({ nom: a.nom || "", adresse: a.adresse || "" });
+    setShowForm(true);
+  }
 
   async function saveAnnexe() {
-    if (!form.nom) return;
+    if (!formAnnexe.nom.trim()) return showMsg("Le nom est obligatoire");
     setLoading(true);
     try {
-      editing ? await api.updateAnnexe(editing, form) : await api.createAnnexe(form);
-      await charger(); setModal(false); if (setData) setData();
-    } catch(e) { showMsg(e.message); }
-    setLoading(false);
-  }
-
-  async function delAnnexe(id) {
-    if (!confirm("Supprimer cette annexe ?")) return;
-    try { await api.deleteAnnexe(id); await charger(); if (setData) setData(); }
-    catch(e) { showMsg(e.message); }
-  }
-
-  async function createSurveillant() {
-    if (!survForm.id || !survForm.password || !survForm.name || !survForm.annexe_id)
-      return showMsg("Tous les champs sont requis");
-    setLoading(true);
-    try {
-      await api.createUser({ id:survForm.id, password:survForm.password,
-        name:survForm.name, role:"surveillant", annexe_id:parseInt(survForm.annexe_id) });
-      showMsg("Surveillant créé avec succès", "success");
-      setSurvForm({ id:"", password:"", name:"", annexe_id:"" });
+      if (editAnnexe) {
+        await api.updateAnnexe(editAnnexe.id, formAnnexe);
+        showMsg("Annexe modifiée avec succès", "success");
+      } else {
+        await api.createAnnexe(formAnnexe);
+        showMsg("Annexe créée avec succès", "success");
+      }
+      setShowForm(false);
       await charger();
-    } catch(e) { showMsg("Erreur : " + e.message); }
+      if (setData) setData();
+    } catch (e) { showMsg(e.message || e); }
     setLoading(false);
   }
 
-  async function handleChangePwd() {
-    if (!newPwd || !pwdTarget) return;
+  async function deleteAnnexe(a) {
+    if (!confirm("Supprimer l annexe " + a.nom + " ? Les étudiants/profs liés seront détachés.")) return;
     setLoading(true);
     try {
-      await api.resetPassword(pwdTarget, newPwd);
-      showMsg("Mot de passe modifié", "success");
-      setPwdTarget(null); setNewPwd("");
-    } catch(e) { showMsg(e.message); }
+      await api.deleteAnnexe(a.id);
+      showMsg("Annexe supprimée", "success");
+      await charger();
+      if (setData) setData();
+    } catch (e) { showMsg(e.message || e); }
+    setLoading(false);
+  }
+
+  async function doTransfertFiliere() {
+    console.log('TRANSFERT FILIERE:', tFiliere);
+    if (!tFiliere.filiere_id || !tFiliere.annexe_id) return showMsg("Sélectionner une filière et une annexe cible");
+    if (!confirm("Transférer toute la filière vers cette annexe ? Les identifiants sont conservés.")) return;
+    setLoading(true);
+    try {
+      const r = await api.transferFiliere({ filiere_id: parseInt(tFiliere.filiere_id), annexe_id: parseInt(tFiliere.annexe_id), session: filterSessionF });
+      showMsg((r.nb_etudiants || 0) + " étudiant(s) transféré(s) avec succès", "success");
+      setTFiliere({ filiere_id: "", annexe_id: "" });
+      await charger(); if (setData) setData();
+    } catch (e) { showMsg(e.message || e); }
+    setLoading(false);
+  }
+
+  async function doTransfertSurv() {
+    if (!tSurv.id || !tSurv.annexe_id) return showMsg("Sélectionner un surveillant et une annexe cible");
+    setLoading(true);
+    try {
+      await api.transfert({ type: "surveillant", id: tSurv.id, annexe_id: parseInt(tSurv.annexe_id) });
+      showMsg("Surveillant transféré avec succès", "success");
+      setTSurv({ id: "", annexe_id: "" });
+      await charger(); if (setData) setData();
+    } catch (e) { showMsg(e.message || e); }
     setLoading(false);
   }
 
   async function doTransfert() {
-    if (!transfert.id || !transfert.annexe_id)
-      return showMsg("Sélectionner un élément et une annexe cible");
+    if (!transfert.id || !transfert.annexe_id) return showMsg("Sélectionner une personne et une annexe cible");
     setLoading(true);
     try {
-      await api.transfert({ type:transfert.type, id:parseInt(transfert.id), annexe_id:parseInt(transfert.annexe_id) });
-      showMsg("Transfert effectué avec succès", "success");
-      setTransfert({ type:"etudiant", id:"", annexe_id:"" });
+      await api.transfert({ type: transfert.type, id: transfert.id, annexe_id: parseInt(transfert.annexe_id) });
+      showMsg(transfert.type + " transféré avec succès", "success");
+      setTransfert({ ...transfert, id: "", annexe_id: "" });
       await charger(); if (setData) setData();
-    } catch(e) { showMsg(e.message); }
+    } catch (e) { showMsg(e.message || e); }
     setLoading(false);
   }
 
-  const getAnnexeName = (id) => annexes.find(a => a.id === parseInt(id))?.nom || "—";
-  const surveillants  = users.filter(u => u.role === "surveillant");
-
-  const tabStyle = (id) => ({
-    padding:"8px 18px", border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
-    borderRadius:"8px 8px 0 0", marginRight:4,
-    background: activeTab===id ? "var(--bg2)" : "transparent",
-    color: activeTab===id ? "#f0c040" : "var(--text3)",
-    borderBottom: activeTab===id ? "2px solid #f0c040" : "2px solid transparent",
-  });
+  const tabs = [
+    { id: "annexes",   label: "Annexes" },
+    { id: "etudiants", label: "Étudiants" },
+    { id: "transfer",  label: "Transferts" },
+  ];
 
   return (
-    <div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-        <div>
-          <h2 style={{ fontFamily:"'Lora',serif", fontSize:24, fontWeight:700, color:"#f0c040" }}>
-            Gestion des Annexes
-          </h2>
-          <p style={{ color:"var(--text2)", fontSize:13, marginTop:4 }}>
-            {annexes.length} annexe(s) — Technolab Bamako
-          </p>
-        </div>
-        {activeTab==="annexes" && <button onClick={openNew} style={btnPrimary}>+ Nouvelle annexe</button>}
+    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, borderBottom: "1px solid var(--border)", paddingBottom: 12 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            padding: "10px 22px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
+            background: activeTab === t.id ? "#f0c040" : "rgba(255,255,255,0.06)",
+            color: activeTab === t.id ? "#1a1200" : "var(--text2)"
+          }}>{t.label}</button>
+        ))}
       </div>
 
-      {message.text && (
-        <div style={{
-          padding:"10px 14px", borderRadius:8, marginBottom:16, fontSize:13,
-          background: message.type==="success" ? "rgba(52,211,153,0.1)" : "rgba(239,68,68,0.1)",
-          color: message.type==="success" ? "#34d399" : "#ef4444",
-          border:`1px solid ${message.type==="success" ? "#34d399" : "#ef4444"}`,
-        }}>{message.text}</div>
-      )}
-
-      <div style={{ borderBottom:"1px solid var(--border)", marginBottom:24 }}>
-        {[{id:"annexes",label:"📍 Annexes"},{id:"surveillants",label:"👤 Surveillants"},{id:"transfer",label:"🔄 Transferts"}]
-          .map(t => <button key={t.id} onClick={()=>setActiveTab(t.id)} style={tabStyle(t.id)}>{t.label}</button>)}
-      </div>
-
-      {activeTab==="annexes" && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
-          {annexes.map(a => (
-            <div key={a.id} style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, padding:18 }}>
-              <div style={{ marginBottom:12 }}>
-                <div style={{ fontSize:15, fontWeight:700, color:"#f0c040" }}>{a.nom}</div>
-                <div style={{ fontSize:11, color:"var(--text3)", marginTop:2 }}>ID : {a.id}</div>
-                {a.adresse && <div style={{ fontSize:12, color:"var(--text2)", marginTop:4 }}>{a.adresse}</div>}
-              </div>
-              <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-                {[
-                  {l:"Étudiants",   v:etudiants.filter(e=>e.annexe_id===a.id).length,    c:"#34d399"},
-                  {l:"Profs",       v:professeurs.filter(p=>p.annexe_id===a.id).length,  c:"#818cf8"},
-                  {l:"Surveillants",v:surveillants.filter(u=>u.annexe_id===a.id).length, c:"#f0c040"},
-                ].map(s => (
-                  <div key={s.l} style={{ flex:1, background:"rgba(255,255,255,0.04)", borderRadius:7, padding:"6px 4px", textAlign:"center" }}>
-                    <div style={{ fontSize:16, fontWeight:700, color:s.c }}>{s.v}</div>
-                    <div style={{ fontSize:9, color:"var(--text3)" }}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <button onClick={()=>openEdit(a)}    style={actionBtn("#38bdf8")}>Modifier</button>
-                <button onClick={()=>delAnnexe(a.id)} style={actionBtn("#ef4444")}>Supprimer</button>
-              </div>
-            </div>
-          ))}
-          {!annexes.length && (
-            <div style={{ gridColumn:"1/-1", textAlign:"center", padding:40, color:"var(--text3)", fontSize:13 }}>
-              Aucune annexe — cliquez sur "+ Nouvelle annexe"
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab==="surveillants" && (
+      {activeTab === "annexes" && (
         <div>
-          <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, padding:22, marginBottom:24 }}>
-            <h3 style={{ fontSize:15, fontWeight:700, color:"#f0c040", marginBottom:16 }}>Créer un surveillant</h3>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginBottom:14 }}>
-              <select style={inp} value={survForm.annexe_id} onChange={e=>setSurvForm({...survForm,annexe_id:e.target.value})}>
-                <option value="">-- Sélectionner une annexe --</option>
-                {annexes.map(a=><option key={a.id} value={a.id}>{a.nom}</option>)}
-              </select>
-              <input style={inp} placeholder="Identifiant (ex: SURV01)" value={survForm.id}
-                onChange={e=>setSurvForm({...survForm,id:e.target.value})}/>
-              <input style={inp} type="password" placeholder="Mot de passe" value={survForm.password}
-                onChange={e=>setSurvForm({...survForm,password:e.target.value})}/>
-              <input style={inp} placeholder="Nom complet" value={survForm.name}
-                onChange={e=>setSurvForm({...survForm,name:e.target.value})}/>
-            </div>
-            <button onClick={createSurveillant} disabled={loading} style={{...btnPrimary,opacity:loading?0.6:1}}>
-              {loading?"Création...":"Créer le surveillant"}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#f0c040", margin: 0 }}>Gestion des annexes</h3>
+            <button onClick={openCreate} style={{ ...btnPrimary, padding: "10px 18px" }}>
+              + Nouvelle annexe
             </button>
           </div>
-          <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, padding:22 }}>
-            <h3 style={{ fontSize:15, fontWeight:700, color:"#f0c040", marginBottom:16 }}>Surveillants ({surveillants.length})</h3>
-            {!surveillants.length ? (
-              <p style={{ color:"var(--text3)", fontSize:13 }}>Aucun surveillant créé.</p>
-            ) : surveillants.map(u => (
-              <div key={u.id} style={{
-                display:"flex", alignItems:"flex-start", justifyContent:"space-between",
-                padding:"12px 14px", marginBottom:8,
-                background:"rgba(255,255,255,0.03)", borderRadius:8, border:"1px solid var(--border)",
-              }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                    <span style={{ fontWeight:600, color:"var(--text)", fontSize:14 }}>{u.name}</span>
-                    <span style={{ padding:"3px 9px", borderRadius:10, fontSize:10, fontWeight:700,
-                      background:"rgba(240,192,64,0.15)", color:"#f0c040" }}>SURVEILLANT</span>
-                  </div>
-                  <div style={{ fontSize:11, color:"var(--text3)" }}>
-                    Login : <strong>{u.id}</strong>
-                    {u.annexe_id && <> · Annexe : <strong style={{ color:"#f0c040" }}>{getAnnexeName(u.annexe_id)}</strong></>}
-                  </div>
-                  {pwdTarget===u.id ? (
-                    <div style={{ display:"flex", gap:6, marginTop:8 }}>
-                      <input type="password" placeholder="Nouveau mot de passe" value={newPwd}
-                        onChange={e=>setNewPwd(e.target.value)}
-                        style={{...inp,width:200,marginBottom:0,padding:"6px 10px",fontSize:12}} autoFocus/>
-                      <button onClick={handleChangePwd} disabled={loading}
-                        style={{padding:"4px 10px",borderRadius:6,border:"none",cursor:"pointer",background:"rgba(52,211,153,0.15)",color:"#34d399",fontWeight:700}}>
-                        Confirmer
-                      </button>
-                      <button onClick={()=>{setPwdTarget(null);setNewPwd("");}}
-                        style={{padding:"4px 10px",borderRadius:6,border:"none",cursor:"pointer",background:"rgba(239,68,68,0.15)",color:"#ef4444",fontWeight:700}}>
-                        Annuler
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={()=>setPwdTarget(u.id)} style={{
-                      marginTop:6,padding:"3px 10px",borderRadius:6,border:"none",cursor:"pointer",
-                      background:"rgba(240,192,64,0.1)",color:"#f0c040",fontSize:11,fontWeight:600}}>
-                      🔑 Modifier mot de passe
-                    </button>
-                  )}
+
+          {showForm && (
+            <div style={{ background: "var(--bg2)", border: "1px solid #f0c040", borderRadius: 12, padding: 22, marginBottom: 24, maxWidth: 500 }}>
+              <h4 style={{ color: "#f0c040", marginBottom: 16, fontSize: 15, fontWeight: 700 }}>
+                {editAnnexe ? "Modifier l annexe" : "Créer une nouvelle annexe"}
+              </h4>
+              <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Nom *</div>
+              <input style={inp} placeholder="Ex: Annexe Nord" value={formAnnexe.nom} onChange={e => setFormAnnexe({ ...formAnnexe, nom: e.target.value })} />
+              <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Adresse</div>
+              <input style={inp} placeholder="Ex: 12 rue des Écoles, Dakar" value={formAnnexe.adresse} onChange={e => setFormAnnexe({ ...formAnnexe, adresse: e.target.value })} />
+              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                <button onClick={saveAnnexe} disabled={loading} style={{ ...btnPrimary, flex: 1, opacity: loading ? 0.6 : 1 }}>
+                  {loading ? "Enregistrement..." : editAnnexe ? "Modifier" : "Créer"}
+                </button>
+                <button onClick={() => setShowForm(false)} style={{ padding: "12px 20px", background: "rgba(255,255,255,0.06)", color: "var(--text2)", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            {annexes.length === 0 && (
+              <div style={{ color: "var(--text3)", fontSize: 14, padding: 20 }}>Aucune annexe. Créez-en une ci-dessus.</div>
+            )}
+            {annexes.map(a => (
+              <div key={a.id} style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 10, padding: 18 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{a.nom}</div>
+                <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 12 }}>{a.adresse || "Adresse non renseignée"}</div>
+                <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text3)", marginBottom: 14 }}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                </svg>
+                {a.nb_etudiants || 0} étudiants
+              </span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                {a.nb_professeurs || 0} profs
+              </span>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => openEdit(a)} style={btnEdit}>Modifier</button>
+                  <button onClick={() => deleteAnnexe(a)} style={btnDanger}>Supprimer</button>
                 </div>
               </div>
             ))}
@@ -250,63 +190,207 @@ export default function GestionAnnexes({ data, setData }) {
         </div>
       )}
 
-      {activeTab==="transfer" && (
-        <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, padding:22, maxWidth:520 }}>
-          <h3 style={{ fontSize:15, fontWeight:700, color:"#f0c040", marginBottom:6 }}>Transfert entre annexes</h3>
-          <p style={{ fontSize:12, color:"var(--text3)", marginBottom:20 }}>Les identifiants et mots de passe sont conservés.</p>
-          <div style={{ display:"flex", gap:10, marginBottom:14 }}>
-            {["etudiant","professeur"].map(t => (
-              <button key={t} onClick={()=>setTransfert({...transfert,type:t,id:""})} style={{
-                flex:1,padding:"9px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
-                background:transfert.type===t?"#f0c040":"rgba(255,255,255,0.05)",
-                color:transfert.type===t?"#1a1200":"var(--text2)",
-              }}>
-                {t==="etudiant"?"👨‍🎓 Étudiant":"👨‍🏫 Professeur"}
-              </button>
-            ))}
+      {activeTab === "etudiants" && (
+        <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 12, padding: 22 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "#f0c040", marginBottom: 16 }}>Liste des étudiants</h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+              <thead>
+                <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <th style={{ textAlign: "left", padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>Nom</th>
+                  <th style={{ textAlign: "left", padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>Matricule</th>
+                  <th style={{ textAlign: "left", padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>Filière</th>
+                  <th style={{ textAlign: "left", padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>Annexe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {etudiants.length === 0 && <tr><td colSpan={4} style={{ padding: 20, textAlign: "center", color: "var(--text3)" }}>Aucun étudiant</td></tr>}
+                {etudiants.map(e => (
+                  <tr key={e.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                    <td style={{ padding: "10px 12px" }}>{e.name}</td>
+                    <td style={{ padding: "10px 12px", fontFamily: "monospace" }}>{e.matricule || "—"}</td>
+                    <td style={{ padding: "10px 12px" }}>{e.filiere || "—"}</td>
+                    <td style={{ padding: "10px 12px" }}>{getAnnexeName(e.annexe_id) || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <select style={inp} value={transfert.id} onChange={e=>setTransfert({...transfert,id:e.target.value})}>
-            <option value="">-- Sélectionner {transfert.type==="etudiant"?"un étudiant":"un professeur"} --</option>
-            {(transfert.type==="etudiant"?etudiants:professeurs).map(p=>(
-              <option key={p.id} value={p.id}>
-                {p.name}{p.annexe_id?` (${getAnnexeName(p.annexe_id)})`:" (sans annexe)"}
-              </option>
-            ))}
-          </select>
-          <select style={inp} value={transfert.annexe_id} onChange={e=>setTransfert({...transfert,annexe_id:e.target.value})}>
-            <option value="">-- Annexe cible --</option>
-            {annexes.map(a=><option key={a.id} value={a.id}>{a.nom}</option>)}
-          </select>
-          <button onClick={doTransfert} disabled={loading||!transfert.id||!transfert.annexe_id}
-            style={{...btnPrimary,width:"100%",opacity:(loading||!transfert.id||!transfert.annexe_id)?0.5:1}}>
-            {loading?"Transfert en cours...":"🔄 Transférer"}
-          </button>
         </div>
       )}
 
-      {modal && (
-        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",
-          display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000 }}
-          onClick={()=>setModal(false)}>
-          <div style={{ background:"var(--bg2)",border:"1px solid var(--border)",
-            borderRadius:16,padding:24,width:"90%",maxWidth:400 }}
-            onClick={e=>e.stopPropagation()}>
-            <h3 style={{ fontSize:17,fontWeight:700,color:"#f0c040",marginBottom:20 }}>
-              {editing?"Modifier l'annexe":"Nouvelle annexe"}
-            </h3>
-            <input style={inp} placeholder="Nom de l'annexe *" value={form.nom}
-              onChange={e=>setForm({...form,nom:e.target.value})} autoFocus/>
-            <input style={inp} placeholder="Adresse" value={form.adresse}
-              onChange={e=>setForm({...form,adresse:e.target.value})}/>
-            <div style={{ display:"flex",gap:10,justifyContent:"flex-end",marginTop:6 }}>
-              <button onClick={()=>setModal(false)} style={{...btnPrimary,background:"transparent",
-                color:"var(--text2)",border:"1px solid var(--border)"}}>Annuler</button>
-              <button onClick={saveAnnexe} disabled={loading||!form.nom}
-                style={{...btnPrimary,opacity:loading?0.6:1}}>
-                {loading?"...":(editing?"Modifier":"Créer")}
+      {activeTab === "transfer" && (
+        <div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            {[
+              { id: "etudiant",    label: "Étudiant" },
+              { id: "filiere",     label: "Filière entière" },
+              { id: "surveillant", label: "Surveillant" },
+            ].map(t => (
+              <button key={t.id} onClick={() => setTransfertType(t.id)} style={{
+                padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
+                background: transfertType === t.id ? "#f0c040" : "rgba(255,255,255,0.05)",
+                color: transfertType === t.id ? "#1a1200" : "var(--text2)"
+              }}>{t.label}</button>
+            ))}
+          </div>
+
+          {transfertType === "etudiant" && (
+            <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 12, padding: 22, maxWidth: 560 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#f0c040", marginBottom: 4 }}>Transfert d un étudiant</h3>
+              <p style={{ fontSize: 12, color: "var(--text3)", marginBottom: 18 }}>Identifiant et mot de passe conservés.</p>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cycle</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {["Tous", "Licence 1", "Licence 2", "Licence 3", "Master 1", "Master 2", "Doctorat"].map(cy => (
+                    <button key={cy} onClick={() => { setFilterCycle(cy); setFilterFiliere(""); setTransfert({ ...transfert, id: "" }); }} style={{
+                      padding: "6px 14px", borderRadius: 7, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12,
+                      background: filterCycle === cy ? "rgba(240,192,64,0.2)" : "rgba(255,255,255,0.05)",
+                      color: filterCycle === cy ? "#f0c040" : "var(--text3)"
+                    }}>{cy}</button>
+                  ))}
+                </div>
+              </div>
+              <select style={inp} value={filterFiliere} onChange={e => { setFilterFiliere(e.target.value); setTransfert({ ...transfert, id: "" }); }}>
+                <option value="">-- Toutes les filières --</option>
+                {(data?.filieres || []).filter(f => {
+                  if (filterCycle === "Tous") return true;
+                  return f.cycle === filterCycle;
+                }).map(f => <option key={f.id} value={f.id}>{f.name} ({f.code})</option>)}
+              </select>
+              <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                {["Tous","jour","soir"].map(s => (
+                  <button key={s} onClick={()=>setFilterSession(s)} style={{
+                    flex:1, padding:"8px 0", borderRadius:7, border:"none", cursor:"pointer",
+                    fontWeight:600, fontSize:12,
+                    background: filterSession===s ? "#f0c040" : "rgba(255,255,255,0.05)",
+                    color: filterSession===s ? "#1a1200" : "var(--text2)",
+                  }}>
+                    {s==="Tous" ? (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg>
+                        Tous
+                      </span>
+                    ) : s==="jour" ? (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        Jour
+                      </span>
+                    ) : (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        Soir
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <select style={inp} value={transfert.id} onChange={e => setTransfert({ ...transfert, id: e.target.value })}>
+                <option value="">-- Sélectionner un étudiant --</option>
+                {etudiants.filter(e => (!filterFiliere || String(e.filiere_id || e.filiereId) === String(filterFiliere)) && (filterSession === 'Tous' || e.session === filterSession)).map(e => (
+                  <option key={e.id} value={e.id}>{e.name} · {e.matricule || ""}{e.annexe_id ? " (" + getAnnexeName(e.annexe_id) + ")" : " (sans annexe)"}</option>
+                ))}
+              </select>
+              <select style={inp} value={transfert.annexe_id} onChange={e => setTransfert({ ...transfert, annexe_id: e.target.value })}>
+                <option value="">-- Annexe cible --</option>
+                {annexes.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
+              </select>
+              <button onClick={doTransfert} disabled={loading || !transfert.id || !transfert.annexe_id} style={{ ...btnPrimary, width: "100%", opacity: (loading || !transfert.id || !transfert.annexe_id) ? 0.5 : 1 }}>
+                {loading ? "Transfert en cours..." : "Transférer l étudiant"}
               </button>
             </div>
-          </div>
+          )}
+
+          {transfertType === "filiere" && (
+            <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 12, padding: 22, maxWidth: 560 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#f0c040", marginBottom: 4 }}>Transfert d une filière entière</h3>
+              <div style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 8, padding: "10px 14px", marginBottom: 18, fontSize: 12, color: "#34d399" }}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Les comptes étudiants sont conservés avec leurs identifiants. Seule l'annexe est mise à jour.
+                </span>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cycle</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {["Tous", "Licence 1", "Licence 2", "Licence 3", "Master 1", "Master 2", "Doctorat"].map(cy => (
+                    <button key={cy} onClick={() => { setFilterCycle(cy); setTFiliere({ ...tFiliere, filiere_id: "" }); }} style={{
+                      padding: "6px 14px", borderRadius: 7, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12,
+                      background: filterCycle === cy ? "rgba(240,192,64,0.2)" : "rgba(255,255,255,0.05)",
+                      color: filterCycle === cy ? "#f0c040" : "var(--text3)"
+                    }}>{cy}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                {["Tous","jour","soir"].map(s => (
+                  <button key={s} onClick={()=>setFilterSessionF(s)} style={{
+                    flex:1, padding:"8px 0", borderRadius:7, border:"none", cursor:"pointer",
+                    fontWeight:600, fontSize:12,
+                    background: filterSessionF===s ? "#f0c040" : "rgba(255,255,255,0.05)",
+                    color: filterSessionF===s ? "#1a1200" : "var(--text2)",
+                  }}>
+                    {s==="Tous" ? (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg>
+                        Tous
+                      </span>
+                    ) : s==="jour" ? (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        Jour
+                      </span>
+                    ) : (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        Soir
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <select style={inp} value={tFiliere.filiere_id} onChange={e => setTFiliere({ ...tFiliere, filiere_id: e.target.value })}>
+                <option value="">-- Sélectionner une filière --</option>
+                {(data?.filieres || []).filter(f => {
+                  if (filterCycle === "Tous") return true;
+                  return f.cycle === filterCycle;
+                }).map(f => {
+                  const nb = etudiants.filter(e =>
+                    String(e.filiere_id || e.filiereId) === String(f.id) &&
+                    (filterSessionF === "Tous" || e.session === filterSessionF)
+                  ).length;
+                  return <option key={f.id} value={f.id}>{f.name} ({f.code}) — {nb} étudiant(s)</option>;
+                })}
+              </select>
+              <select style={inp} value={tFiliere.annexe_id} onChange={e => setTFiliere({ ...tFiliere, annexe_id: e.target.value })}>
+                <option value="">-- Annexe cible --</option>
+                {annexes.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
+              </select>
+              <button onClick={doTransfertFiliere} disabled={loading || !tFiliere.filiere_id || !tFiliere.annexe_id} style={{ ...btnPrimary, width: "100%", opacity: (loading || !tFiliere.filiere_id || !tFiliere.annexe_id) ? 0.5 : 1 }}>
+                {loading ? "Transfert en cours..." : "Transférer la filière"}
+              </button>
+            </div>
+          )}
+
+          {transfertType === "surveillant" && (
+            <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 12, padding: 22, maxWidth: 560 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#f0c040", marginBottom: 4 }}>Transfert d un surveillant</h3>
+              <p style={{ fontSize: 12, color: "var(--text3)", marginBottom: 18 }}>Identifiant et mot de passe conservés.</p>
+              <select style={inp} value={tSurv.id} onChange={e => setTSurv({ ...tSurv, id: e.target.value })}>
+                <option value="">-- Sélectionner un surveillant --</option>
+                {users.filter(u => u.role === "surveillant").map(u => (
+                  <option key={u.id} value={u.id}>{u.name} · {u.id}{u.annexe_id ? " (" + getAnnexeName(u.annexe_id) + ")" : " (sans annexe)"}</option>
+                ))}
+              </select>
+              <select style={inp} value={tSurv.annexe_id} onChange={e => setTSurv({ ...tSurv, annexe_id: e.target.value })}>
+                <option value="">-- Annexe cible --</option>
+                {annexes.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
+              </select>
+              <button onClick={doTransfertSurv} disabled={loading || !tSurv.id || !tSurv.annexe_id} style={{ ...btnPrimary, width: "100%", opacity: (loading || !tSurv.id || !tSurv.annexe_id) ? 0.5 : 1 }}>
+                {loading ? "Transfert en cours..." : "Transférer le surveillant"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -97,6 +97,12 @@ export default function GestionEtudiants({ data, setData }) {
     try { await api.archiveEtudiant(id); await setData(); } catch(e) { alert(e.message); }
   }
 
+  async function restaurer(id) {
+    if (!confirm("Restaurer cet étudiant ? Il redeviendra actif.")) return;
+    try { await api.restoreEtudiant(id); await setData(); }
+    catch(e) { alert(e.message); }
+  }
+
   async function archiverPromotion() {
     const annee = prompt("Quelle annee academique archiver ? (" + annees.join(", ") + ")");
     if (!annee) return;
@@ -276,16 +282,21 @@ export default function GestionEtudiants({ data, setData }) {
                           background:"rgba(56,189,248,0.1)",border:"1px solid rgba(56,189,248,0.3)",
                           borderRadius:6,padding:"5px 10px",fontSize:11,color:"#38bdf8",cursor:"pointer",
                         }}>Modifier</button>
-                        {!showArchives
-                          ? <button onClick={()=>archiver(e.id)} style={{
-                              background:"rgba(251,146,60,0.1)",border:"1px solid rgba(251,146,60,0.3)",
-                              borderRadius:6,padding:"5px 8px",fontSize:11,color:"#fb923c",cursor:"pointer",
-                            }}>Archiver</button>
-                          : <button onClick={()=>del(e.id)} style={{
-                              background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",
-                              borderRadius:6,padding:"5px 8px",fontSize:11,color:"#ef4444",cursor:"pointer",
-                            }}>Supprimer</button>
-                        }
+                        {showArchives ? (
+                          <button onClick={()=>restaurer(e.id)} style={{
+                            background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",
+                            borderRadius:6,padding:"5px 10px",fontSize:11,color:"#34d399",cursor:"pointer",
+                          }}>Restaurer</button>
+                        ) : (<>
+                          <button onClick={()=>archiver(e.id)} style={{
+                            background:"rgba(251,146,60,0.1)",border:"1px solid rgba(251,146,60,0.3)",
+                            borderRadius:6,padding:"5px 8px",fontSize:11,color:"#fb923c",cursor:"pointer",
+                          }}>Archiver</button>
+                          <button onClick={()=>del(e.id)} style={{
+                            background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",
+                            borderRadius:6,padding:"5px 8px",fontSize:11,color:"#ef4444",cursor:"pointer",
+                          }}>Supprimer</button>
+                        </>)}
                       </div>
                     </td>
                   </tr>

@@ -5,6 +5,7 @@ import AdminNotifications from "./AdminNotifications";
 import CalendrierAcademique from "./CalendrierAcademique";
 import Deliberation from "./Deliberation";
 import GestionAnnexes from "./GestionAnnexes";
+import { api } from "../../api";
 import RapportPDF from "./RapportPDF";
 import GestionFilieres from "./GestionFilieres";
 import GestionUE from "./GestionUE";
@@ -104,7 +105,7 @@ export default function AdminDashboard({
       {tab === "import"        && <ImportCSV          data={data} setData={setData} />}
       {tab === "notifications" && <AdminNotifications data={data} />}
       {tab === "calendrier"    && <CalendrierAcademique data={data} />}
-      {tab === "annexes"       && <GestionAnnexes data={data} setData={setData} />}
+      {tab === "annexes"       && <GestionAnnexes data={data} setData={setData} api={api} charger={async () => setData && setData()} showMsg={(m, t) => alert(m)} />}
       {tab === "deliberation"  && <Deliberation data={data} />}
       {tab === "rapports"      && <RapportPDF data={data} />}
       {tab === "profil"    && <AdminProfil      user={user} data={data} setData={setData} />}

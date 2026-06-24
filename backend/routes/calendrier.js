@@ -2,6 +2,10 @@ const router = require('express').Router();
 const pool   = require('../db');
 const auth   = require('../middleware/auth');
 const admin  = require('../middleware/admin');
+function adminOrSurv(req, res, next) {
+  if (req.user?.role === 'admin' || req.user?.role === 'surveillant') return next();
+  return res.status(403).json({ error: 'Accès refusé' });
+}
 
 // GET — tous les événements
 router.get('/', auth, async (req, res) => {
@@ -28,7 +32,7 @@ router.get('/public', async (req, res) => {
 });
 
 // POST — créer un événement
-router.post('/', auth, admin, async (req, res) => {
+router.post('/', auth, adminOrSurv, async (req, res) => {
   const { titre, type, dateDebut, dateFin, description, anneeAcademique } = req.body;
   try {
     const r = await pool.query(
@@ -41,7 +45,7 @@ router.post('/', auth, admin, async (req, res) => {
 });
 
 // PUT — modifier
-router.put('/:id', auth, admin, async (req, res) => {
+router.put('/:id', auth, adminOrSurv, async (req, res) => {
   const { titre, type, dateDebut, dateFin, description } = req.body;
   try {
     const r = await pool.query(
@@ -54,7 +58,7 @@ router.put('/:id', auth, admin, async (req, res) => {
 });
 
 // DELETE
-router.delete('/:id', auth, admin, async (req, res) => {
+router.delete('/:id', auth, adminOrSurv, async (req, res) => {
   try {
     await pool.query('DELETE FROM calendrier WHERE id=$1', [req.params.id]);
     res.json({ success: true });

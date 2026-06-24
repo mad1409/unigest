@@ -32,6 +32,10 @@ router.post('/', auth, async (req, res) => {
     }
 
     // 1. Creer l'etudiant AVEC le site_id
+    // Vérifier que le matricule n'existe pas déjà (même archivé)
+    const existCheck = await pool.query('SELECT id FROM etudiants WHERE matricule=$1', [matricule]);
+    if (existCheck.rows.length) return res.status(400).json({ error: 'Ce matricule existe déjà — il ne peut pas être réutilisé' });
+
     const r = await pool.query(
       `INSERT INTO etudiants (matricule,name,email,tel,filiere_id,annee_academique,session,site_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
@@ -40,10 +44,26 @@ router.post('/', auth, async (req, res) => {
     const etu = r.rows[0];
     
     // 2. Creer le compte utilisateur AVEC le site_id et un login unique par site
-    const parts  = name.trim().split(' ');
-    const init   = parts.map(p=>p[0]?.toUpperCase()||'').join('').slice(0,3);
-    const count  = await pool.query("SELECT COUNT(*) FROM users WHERE id LIKE 'ETU%' AND (site_id = $1 OR site_id IS NULL)", [forcedSiteId || null]);
-    const userId = 'ETU' + init + String(parseInt(count.rows[0].count)+1).padStart(2,'0');
+    // Récupérer le code filière pour l'identifiant
+    let codeFiliere = 'ETU';
+    if (filiereId) {
+      const fRes = await pool.query('SELECT code FROM filieres WHERE id=$1', [filiereId]);
+      if (fRes.rows.length) {
+        // Prendre les 4-5 premiers caractères du code sans tirets
+        codeFiliere = fRes.rows[0].code.replace(/[^A-Z0-9]/gi,'').slice(0,5).toUpperCase();
+      }
+    }
+    const parts  = name.trim().split(' ').filter(Boolean);
+    const prenom = (parts[0]||'X')[0].toUpperCase();
+    const nom    = (parts[1]||parts[0]||'XX').slice(0,2).toUpperCase();
+    const init   = prenom + nom;
+    let n = 1, userId;
+    while (true) {
+      userId = codeFiliere + init + String(n).padStart(2,'0');
+      const chk = await pool.query('SELECT id FROM users WHERE id=$1', [userId]);
+      if (!chk.rows.length) break;
+      n++;
+    }
     const hash   = await bcrypt.hash('etu123', 10);
     
     await pool.query(
@@ -86,8 +106,9 @@ router.put('/:id/archive', async (req, res) => {
   } catch(e){ res.status(500).json({error:e.message}); }
 });
 
-// PUT /api/etudiants/:id/restore
+// PUT /api/etudiants/:id/restore — admin seulement
 router.put('/:id/restore', async (req, res) => {
+  if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'administrateur général' });
   try {
     await pool.query('UPDATE etudiants SET archive=FALSE WHERE id=$1', [req.params.id]);
     await pool.query('UPDATE users SET archive=FALSE WHERE etudiant_id=$1', [req.params.id]);

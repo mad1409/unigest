@@ -104,3 +104,41 @@ router.delete('/:id', auth, surveillantMw, async (req, res) => {
 });
 
 module.exports = router;
+
+// POST /api/edt/:id/slots
+router.post('/:id/slots', auth, async (req, res) => {
+  const { jour, session, heureDebut, heureFin, matiere, type, salle, groupe, profNom, tronc, siteId } = req.body;
+  try {
+    const r = await pool.query(`
+      INSERT INTO edt_slots (edt_id, jour, session, heure_debut, heure_fin, matiere, type, salle, groupe, prof_nom, tronc, site_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.params.id, jour, session||'jour', heureDebut, heureFin,
+       matiere, type||'Cours', salle||null, groupe||null, profNom||null, tronc||false, siteId||null]
+    );
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/edt/:id/slots/:slotId
+router.put('/:id/slots/:slotId', auth, async (req, res) => {
+  const { jour, session, heureDebut, heureFin, matiere, type, salle, groupe, profNom, tronc, siteId } = req.body;
+  try {
+    const r = await pool.query(`
+      UPDATE edt_slots SET jour=$1, session=$2, heure_debut=$3, heure_fin=$4,
+        matiere=$5, type=$6, salle=$7, groupe=$8, prof_nom=$9, tronc=$10, site_id=$11
+      WHERE id=$12 AND edt_id=$13 RETURNING *`,
+      [jour, session||'jour', heureDebut, heureFin, matiere, type||'Cours',
+       salle||null, groupe||null, profNom||null, tronc||false, siteId||null,
+       req.params.slotId, req.params.id]
+    );
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/edt/:id/slots/:slotId
+router.delete('/:id/slots/:slotId', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM edt_slots WHERE id=$1 AND edt_id=$2', [req.params.slotId, req.params.id]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});

@@ -118,6 +118,112 @@ function ProfSearch({ value, onChange, professeurs }) {
   );
 }
 
+
+// ── Vue Grille ────────────────────────────────────────
+function GrilleHoraire({ slots, onEdit, onDelete }) {
+  const HEURES = ["07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00",
+                  "15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"];
+  const COULEURS = { Cours:"#38bdf8", TD:"#a78bfa", TP:"#34d399", Amphi:"#f0c040", Examen:"#fb923c", Autre:"#94a3b8" };
+
+  function toMinutes(h) {
+    if (!h) return 0;
+    const [hh, mm] = h.split(":").map(Number);
+    return hh * 60 + (mm || 0);
+  }
+
+  const debut  = 7 * 60;  // 07:00
+  const fin    = 22 * 60; // 22:00
+  const total  = fin - debut;
+  const hauteur = 800;
+
+  return (
+    <div style={{ overflowX:"auto" }}>
+      <div style={{ display:"flex", minWidth:900 }}>
+        {/* Colonne heures */}
+        <div style={{ width:54, flexShrink:0, paddingTop:36 }}>
+          {HEURES.map(h => (
+            <div key={h} style={{ height: hauteur / ((fin - debut) / 60), fontSize:10,
+              color:"var(--text3)", textAlign:"right", paddingRight:8,
+              display:"flex", alignItems:"flex-start",
+            }}>{h}</div>
+          ))}
+        </div>
+
+        {/* Colonnes jours */}
+        {JOURS.map(jour => {
+          const slotsJour = slots.filter(s => s.jour === jour);
+          return (
+            <div key={jour} style={{ flex:1, minWidth:120, position:"relative" }}>
+              {/* Header jour */}
+              <div style={{ height:36, display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:12, fontWeight:700, color:"#f0c040",
+                borderBottom:"1px solid var(--border)", borderLeft:"1px solid var(--border)",
+              }}>{jour}</div>
+
+              {/* Grille fond */}
+              <div style={{ position:"relative", height:hauteur, borderLeft:"1px solid var(--border)" }}>
+                {HEURES.map((h, i) => (
+                  <div key={h} style={{
+                    position:"absolute", top: (i / ((fin - debut) / 60)) * hauteur,
+                    left:0, right:0, height:1,
+                    background:"rgba(255,255,255,0.05)",
+                  }}/>
+                ))}
+
+                {/* Créneaux */}
+                {slotsJour.map(s => {
+                  const hd = toMinutes(s.heure_debut || s.heureDebut);
+                  const hf = toMinutes(s.heure_fin   || s.heureFin);
+                  const top    = ((hd - debut) / total) * hauteur;
+                  const height = Math.max(((hf - hd) / total) * hauteur, 24);
+                  const color  = COULEURS[s.type] || "#94a3b8";
+                  return (
+                    <div key={s.id} style={{
+                      position:"absolute", top, left:2, right:2, height,
+                      background: color + "22",
+                      border: "1px solid " + color + "60",
+                      borderLeft: "3px solid " + color,
+                      borderRadius:6, padding:"4px 6px",
+                      overflow:"hidden", cursor:"pointer",
+                      zIndex:1,
+                    }}>
+                      <div style={{ fontSize:10, fontWeight:700, color, lineHeight:1.3,
+                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {s.matiere}
+                      </div>
+                      {height > 40 && (
+                        <div style={{ fontSize:9, color:"var(--text3)", marginTop:2,
+                          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                          {s.prof_nom || s.profNom || ""}
+                        </div>
+                      )}
+                      {height > 56 && s.salle && (
+                        <div style={{ fontSize:9, color:"var(--text3)" }}>{s.salle}</div>
+                      )}
+                      {height > 70 && (
+                        <div style={{ display:"flex", gap:3, marginTop:3 }}>
+                          <button onClick={e=>{e.stopPropagation();onEdit(s);}} style={{
+                            padding:"1px 5px", borderRadius:3, border:"none", cursor:"pointer",
+                            background:color+"30", color, fontSize:9, fontWeight:700,
+                          }}>Edit</button>
+                          <button onClick={e=>{e.stopPropagation();onDelete(s.id);}} style={{
+                            padding:"1px 5px", borderRadius:3, border:"none", cursor:"pointer",
+                            background:"rgba(239,68,68,0.2)", color:"#ef4444", fontSize:9,
+                          }}>X</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Composant principal ───────────────────────────────
 export default function GestionEDT({ data, setData }) {
   const [selectedEDT, setSelectedEDT] = useState(null);

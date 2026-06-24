@@ -6,7 +6,7 @@ import {
   btnPrimary, modalTitle, modalFooter,
 } from "./GestionFilieres";
 
-const initForm = { name:"", tel:"", email:"", ueIds:[], siteIds:[], filiereIds:[], cycle:"Licence", id:null };
+const initForm = { name:"", tel:"", email:"", ueIds:[], siteIds:[], filiereIds:[], cycle:"Tous", id:null };
 
 export default function GestionProfs({ data, setData }) {
   const [sites, setSites] = useState([]);
@@ -313,16 +313,20 @@ export default function GestionProfs({ data, setData }) {
             <Field label="Cycle d'enseignement">
               <select style={inputStyle} value={form.cycle}
                 onChange={e=>setForm({...form, cycle:e.target.value, filiereIds:[]})}>
-                <option value="Licence">Licence (L1 – L3)</option>
-                <option value="Master">Master (M1 – M2)</option>
-                <option value="Les deux">Les deux cycles</option>
+                <option value="Tous">Tous les cycles</option>
+                <option value="Licence 1">Licence 1</option>
+                <option value="Licence 2">Licence 2</option>
+                <option value="Licence 3">Licence 3</option>
+                <option value="Master 1">Master 1</option>
+                <option value="Master 2">Master 2</option>
+                <option value="Doctorat">Doctorat</option>
               </select>
             </Field>
 
             <MultiSelect
               label="Classes assignées (filières)"
               items={(data.filieres||[]).filter(f =>
-                form.cycle === 'Les deux' || f.cycle === form.cycle
+                form.cycle === 'Tous' || f.cycle === form.cycle
               )}
               selectedIds={form.filiereIds}
               onToggle={toggleFiliere}
@@ -347,17 +351,29 @@ export default function GestionProfs({ data, setData }) {
               placeholder="Rechercher un site..."
             />
 
-            <MultiSelect 
-              label="UE enseignees"
-              items={data.ues||[]}
+            <MultiSelect
+              label="Matières enseignées"
+              items={(data.ues||[])
+                .filter(u => form.filiereIds.length === 0 || 
+                  (u.filiereIds||u.filiere_ids||[]).some(fid => form.filiereIds.includes(fid))
+                )
+                .flatMap(u => (u.matieres||[]).map(m => ({
+                  id: m.id,
+                  nom: m.name,
+                  ue: u.code,
+                  filiere: (data.filieres||[]).find(f =>
+                    (u.filiereIds||u.filiere_ids||[]).includes(f.id)
+                  )?.code || "",
+                })))
+              }
               selectedIds={form.ueIds}
               onToggle={toggleUE}
               searchVal={searchUE}
               onSearchChange={setSearchUE}
-              displayKey="code"
-              subKey="intitule"
+              displayKey="nom"
+              subKey="ue"
               badgeColor="#34d399"
-              placeholder="Rechercher une UE..."
+              placeholder="Rechercher une matière..."
             />
           </div>
           <div style={modalFooter}>

@@ -64,6 +64,49 @@ function OngletParametres({ data, setData }) {
   });
   const [msg, setMsg] = useState(null);
 
+
+  function prochainAnnee(annee) {
+    const match = (annee||"").match(/(\d{4})\/(\d{4})/);
+    if (!match) return "";
+    return (parseInt(match[1])+1) + "/" + (parseInt(match[2])+1);
+  }
+
+  async function nouvelleAnnee() {
+    const actuelle = form.anneeActive;
+    const nouvelle = prochainAnnee(actuelle);
+    if (!nouvelle) return alert("Format d'année invalide (attendu: 2025/2026)");
+    const annees = form.anneesDisponibles
+      .split(",").map(a=>a.trim()).filter(Boolean);
+    if (annees.includes(nouvelle)) return alert("Cette année existe déjà : " + nouvelle);
+    const archiver = confirm(
+      "Créer l'année " + nouvelle + " ?\n\n" +
+      "Cliquez OK pour créer + archiver les étudiants de " + actuelle + ".\n" +
+      "Cliquez Annuler pour créer sans archiver."
+    );
+    try {
+      const nouvellesAnnees = [...annees, nouvelle].join(",");
+      await api.updateParametres({
+        ...form,
+        anneeActive: nouvelle,
+        anneeAcademique: nouvelle,
+        anneesDisponibles: nouvellesAnnees,
+      });
+      if (archiver) {
+        await api.archivePromotion(actuelle);
+        alert("Année " + nouvelle + " créée et étudiants de " + actuelle + " archivés.");
+      } else {
+        alert("Année " + nouvelle + " créée.");
+      }
+      setForm(f => ({
+        ...f,
+        anneeActive: nouvelle,
+        anneeAcademique: nouvelle,
+        anneesDisponibles: [...annees, nouvelle].join(","),
+      }));
+      if (setData) setData();
+    } catch(e) { alert("Erreur : " + e.message); }
+  }
+
   async function save() {
     try {
       await api.updateParametres({
@@ -145,6 +188,24 @@ function OngletParametres({ data, setData }) {
             </div>
           </div>
           <div>
+            <div style={{marginBottom:16}}>
+              <button onClick={nouvelleAnnee} style={{
+                background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.3)",
+                borderRadius:9, padding:"10px 20px", color:"#34d399",
+                fontSize:13, fontWeight:700, cursor:"pointer", width:"100%",
+              }}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:8}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                  </svg>
+                  Créer la nouvelle année académique ({prochainAnnee(form.anneeActive)})
+                </span>
+              </button>
+              <p style={{fontSize:11,color:"var(--text3)",marginTop:6}}>
+                Ajoute la prochaine année et propose d'archiver la promotion actuelle.
+              </p>
+            </div>
             {lbl("Annees disponibles (separees par virgule)")}
             <input style={inputStyle} value={form.anneesDisponibles}
               onChange={e=>setForm({...form,anneesDisponibles:e.target.value})}
@@ -236,19 +297,32 @@ function OngletCreerCompte({ data, setData }) {
     if (!form.password)    { setMsg({type:"error",text:"Le mot de passe est obligatoire."}); return; }
     setLoading(true);
     try {
-      const payload = {
-        role:    form.role,
-        name:    form.name.trim(),
-        password:form.password,
-        profId:  form.role==="prof" ? (parseInt(profId)||null) : null,
-      };
-      const result = await api.createUser(payload);
+      let result;
+      if (form.role === "prof" && !profId) {
+        // Créer profil professeur + compte utilisateur en même temps
+        result = await api.createProf({
+          name:       form.name.trim(),
+          password:   form.password,
+          matieres:   [],
+          cycle:      "Licence",
+          filiereIds: [],
+        });
+        result.generatedId = result.userId;
+      } else {
+        const payload = {
+          role:    form.role,
+          name:    form.name.trim(),
+          password:form.password,
+          profId:  form.role==="prof" ? (parseInt(profId)||null) : null,
+        };
+        result = await api.createUser(payload);
+      }
       setMsg({
         type:"success",
         text:"Compte cree avec succes",
-        id: result.generatedId || result.id,
-        name: form.name,
-        role: form.role,
+        id:       result.generatedId || result.userId || result.id,
+        name:     form.name,
+        role:     form.role,
         password: form.password,
       });
       setForm({name:"",role:"prof",password:""});

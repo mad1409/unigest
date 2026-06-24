@@ -78,14 +78,16 @@ router.post('/login', async (req, res) => {
     clearAttempts(id);
     const token = jwt.sign(
       { id: user.id, role: user.role, name: user.name,
-        profId: user.prof_id, etudiantId: user.etudiant_id, annexe_id: user.annexe_id },
+        profId: user.prof_id, etudiantId: user.etudiant_id, annexe_id: user.annexe_id,
+        must_change_password: user.must_change_password || false },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
     await logAudit(req, 'LOGIN', 'users', user.id, { role: user.role });
     res.json({ token, user: {
       id: user.id, role: user.role, name: user.name,
-      profId: user.prof_id, etudiantId: user.etudiant_id, annexe_id: user.annexe_id
+      profId: user.prof_id, etudiantId: user.etudiant_id, annexe_id: user.annexe_id,
+      must_change_password: user.must_change_password || false
     }});
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -106,7 +108,7 @@ router.post('/change-password', async (req, res) => {
     if (!newPassword || newPassword.length < 6)
       return res.status(400).json({ error: 'Mot de passe trop court — minimum 6 caracteres' });
     const hash = await bcrypt.hash(newPassword, 10);
-    await pool.query('UPDATE users SET password=$1 WHERE id=$2', [hash, userId]);
+    await pool.query('UPDATE users SET password=$1, must_change_password=FALSE WHERE id=$2', [hash, userId]);
     res.json({ success: true });
   } catch(err) {
     res.status(500).json({ error: err.message });
