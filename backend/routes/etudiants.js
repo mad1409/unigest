@@ -47,9 +47,8 @@ router.post('/', auth, async (req, res) => {
     // Récupérer le code filière pour l'identifiant
     let codeFiliere = 'ETU';
     if (filiereId) {
-      const fRes = await pool.query('SELECT code FROM filieres WHERE id=$1', [filiereId]);
+      const fRes = await client2.query('SELECT code FROM filieres WHERE id=$1', [filiereId]);
       if (fRes.rows.length) {
-        // Prendre les 4-5 premiers caractères du code sans tirets
         codeFiliere = fRes.rows[0].code.replace(/[^A-Z0-9]/gi,'').slice(0,5).toUpperCase();
       }
     }
@@ -60,19 +59,21 @@ router.post('/', auth, async (req, res) => {
     let n = 1, userId;
     while (true) {
       userId = codeFiliere + init + String(n).padStart(2,'0');
-      const chk = await pool.query('SELECT id FROM users WHERE id=$1', [userId]);
+      const chk = await client2.query('SELECT id FROM users WHERE id=$1', [userId]);
       if (!chk.rows.length) break;
       n++;
     }
-    const hash   = await bcrypt.hash('etu123', 10);
-    
-    await pool.query(
+    const hash = await bcrypt.hash('etu123', 10);
+    await client2.query(
       'INSERT INTO users (id,password,role,name,etudiant_id,site_id) VALUES ($1,$2,$3,$4,$5,$6)',
       [userId, hash, 'etudiant', name, etu.id, forcedSiteId || null]
     );
-    
-    res.json({ ...etu, userId });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    await client2.query('COMMIT');
+    res.json({ ...etu, userId, matricule });
+  } catch (err) {
+    await client2.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client2.release(); }
 });
 
 // PUT /api/etudiants/:id

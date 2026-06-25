@@ -390,9 +390,7 @@ export default function GestionEtudiants({ data, setData }) {
             </div>
             {form.name.trim() && !editing && (
               <div style={{fontSize:11,color:"var(--text3)",background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 12px"}}>
-                Matricule auto : <strong style={{color:"#38bdf8"}}>
-                  {genMatricule(form.anneeAcademique, form.filiereId, etudiants, data.filieres)}
-                </strong>
+                📋 Matricule et identifiant générés automatiquement à la création
               </div>
             )}
           </div>

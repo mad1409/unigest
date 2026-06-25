@@ -92,7 +92,8 @@ export default function GestionFilieres({ data, setData }) {
   const [editing, setEditing] = useState(null);
   const [search,  setSearch]  = useState("");
   const [filterCycle, setFilterCycle] = useState("all");
-  const [form,      setForm]      = useState({ code:"", name:"", cycle:"Licence 1" });
+  const [filterDomaine, setFilterDomaine] = useState("all");
+  const [form,      setForm]      = useState({ code:"", name:"", cycle:"Licence 1", domaine:"Technique" });
   const [batchMode, setBatchMode] = useState(false);
   const [batchBase, setBatchBase] = useState({ code:"", name:"" });
   const [batchSelected, setBatchSelected] = useState(["Licence 1","Licence 2","Licence 3"]);
@@ -100,20 +101,21 @@ export default function GestionFilieres({ data, setData }) {
   const filieres = data.filieres || [];
 
   const filieresFiltrees = useMemo(() => filieres.filter(f => {
-    const cycleOk  = filterCycle === "all" || f.cycle === filterCycle;
+    const cycleOk   = filterCycle === "all" || f.cycle === filterCycle;
+    const domaineOk = filterDomaine === "all" || f.domaine === filterDomaine;
     const q = search.toLowerCase();
-    const searchOk = !q || f.code.toLowerCase().includes(q) || f.name.toLowerCase().includes(q);
-    return cycleOk && searchOk;
+    const searchOk  = !q || f.code.toLowerCase().includes(q) || f.name.toLowerCase().includes(q);
+    return cycleOk && domaineOk && searchOk;
   }), [filieres, search, filterCycle]);
 
   function openAdd() {
-    setForm({ code:"", name:"", cycle:"Licence 1" });
+    setForm({ code:"", name:"", cycle:"Licence 1", domaine:"Technique" });
     setEditing(null);
     setModal(true);
   }
 
   function openEdit(f) {
-    setForm({ code:f.code, name:f.name, cycle:f.cycle||"Licence" });
+    setForm({ code:f.code, name:f.name, cycle:f.cycle||"Licence", domaine:f.domaine||"Technique" });
     setEditing(f.id);
     setModal(true);
   }
@@ -149,9 +151,9 @@ export default function GestionFilieres({ data, setData }) {
     if (!form.code.trim() || !form.name.trim()) return;
     try {
       if (editing) {
-        await api.updateFiliere(editing, { code:form.code.trim(), name:form.name.trim(), cycle:form.cycle });
+        await api.updateFiliere(editing, { code:form.code.trim(), name:form.name.trim(), cycle:form.cycle, domaine:form.domaine });
       } else {
-        await api.createFiliere({ code:form.code.trim(), name:form.name.trim(), cycle:form.cycle });
+        await api.createFiliere({ code:form.code.trim(), name:form.name.trim(), cycle:form.cycle, domaine:form.domaine });
       }
       await setData();
       setModal(false);
@@ -228,6 +230,23 @@ export default function GestionFilieres({ data, setData }) {
           )}
         </div>
 
+        {/* Filtre domaine */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:11,color:"var(--text3)",fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>Domaine:</span>
+          {["all","Technique","Gestion"].map(dom => {
+            const active = filterDomaine === dom;
+            const color  = dom === "Technique" ? "#38bdf8" : dom === "Gestion" ? "#a78bfa" : "#f0c040";
+            const label  = dom === "all" ? "Tous" : dom;
+            return (
+              <button key={dom} onClick={()=>setFilterDomaine(dom)} style={{
+                padding:"6px 12px",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer",
+                background:active?"rgba("+(dom==="Technique"?"56,189,248":dom==="Gestion"?"167,139,250":"240,192,64")+",0.15)":"rgba(255,255,255,0.04)",
+                border:active?"1px solid "+color+"80":"1px solid var(--border)",
+                color:active?color:"var(--text3)",
+              }}>{label}</button>
+            );
+          })}
+        </div>
         {/* Filtre cycle */}
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <button onClick={()=>setFilterCycle("all")} style={{
@@ -426,6 +445,22 @@ export default function GestionFilieres({ data, setData }) {
                       border:form.cycle===cyc?"1.5px solid "+cc.color:"1px solid var(--border)",
                       color:form.cycle===cyc?cc.color:"var(--text2)",
                     }}>{cyc}</button>
+                  );
+                })}
+              </div>
+            </Field>
+            <Field label="Domaine *">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {["Technique","Gestion"].map(dom=>{
+                  const active = form.domaine === dom;
+                  const color  = dom === "Technique" ? "#38bdf8" : "#a78bfa";
+                  return (
+                    <button key={dom} onClick={()=>setForm({...form,domaine:dom})} style={{
+                      padding:"9px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+                      background:active?"rgba("+( dom==="Technique"?"56,189,248":"167,139,250")+",0.15)":"rgba(255,255,255,0.03)",
+                      border:active?"1.5px solid "+color:"1px solid var(--border)",
+                      color:active?color:"var(--text2)",
+                    }}>{dom}</button>
                   );
                 })}
               </div>

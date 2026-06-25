@@ -19,6 +19,7 @@ export default function AdminOverview({ data }) {
   const emploisDuTemps = data.emploisDuTemps || [];
   const notes          = data.notes          || [];
   const users          = data.users          || [];
+  const sites          = data.annexes        || [];
 
   // Stats globales
   // Stats par site

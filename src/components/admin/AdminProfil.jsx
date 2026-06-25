@@ -278,7 +278,7 @@ function OngletParametres({ data, setData }) {
 
 // ── Onglet Créer Compte ───────────────────────────────
 function OngletCreerCompte({ data, setData }) {
-  const [form,    setForm]    = useState({ name:"", role:"prof", password:"" });
+  const [form,    setForm]    = useState({ name:"", role:"prof", password:"", annexe_id:"" });
   const [profId,  setProfId]  = useState("");
   const [msg,     setMsg]     = useState(null);
   const [loading, setLoading] = useState(false);
@@ -306,14 +306,16 @@ function OngletCreerCompte({ data, setData }) {
           matieres:   [],
           cycle:      "Licence",
           filiereIds: [],
+          annexe_id:  form.annexe_id ? parseInt(form.annexe_id) : null,
         });
         result.generatedId = result.userId;
       } else {
         const payload = {
-          role:    form.role,
-          name:    form.name.trim(),
-          password:form.password,
-          profId:  form.role==="prof" ? (parseInt(profId)||null) : null,
+          role:     form.role,
+          name:     form.name.trim(),
+          password: form.password,
+          profId:   form.role==="prof" ? (parseInt(profId)||null) : null,
+          annexe_id: form.annexe_id ? parseInt(form.annexe_id) : null,
         };
         result = await api.createUser(payload);
       }
@@ -325,7 +327,7 @@ function OngletCreerCompte({ data, setData }) {
         role:     form.role,
         password: form.password,
       });
-      setForm({name:"",role:"prof",password:""});
+      setForm({name:"",role:"prof",password:"",annexe_id:""});
       setProfId("");
       await setData();
     } catch(e) { setMsg({type:"error",text:e.message}); }
@@ -409,6 +411,18 @@ function OngletCreerCompte({ data, setData }) {
               </div>
             )}
 
+            {/* Annexe */}
+            <div>
+              {lbl("Annexe (optionnel)")}
+              <select style={{...inputStyle, cursor:"pointer"}}
+                value={form.annexe_id}
+                onChange={e=>setForm({...form,annexe_id:e.target.value})}>
+                <option value="">-- Aucune annexe --</option>
+                {(data.annexes||[]).map(a=>(
+                  <option key={a.id} value={a.id}>{a.nom}</option>
+                ))}
+              </select>
+            </div>
             {/* Mot de passe */}
             <div>
               {lbl("Mot de passe *")}

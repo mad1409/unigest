@@ -107,4 +107,8 @@ export const api = {
   deleteAnnexe: (id)    => request('DELETE', '/annexes/'+id),
   transfert:        (d) => request('PUT', '/annexes/transfer', d),
   transferFiliere:  (d) => request('PUT', '/annexes/transfer-filiere', d),
+  getAnnees:        ()      => request('GET',    '/annees'),
+  createAnnee:      (d)     => request('POST',   '/annees', d),
+  activerAnnee:     (id)    => request('PUT',    '/annees/'+id+'/activer'),
+  deleteAnnee:      (id)    => request('DELETE', '/annees/'+id),
 };

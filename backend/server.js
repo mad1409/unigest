@@ -183,6 +183,7 @@ app.use('/api/groupes',     require('./routes/groupes'));
 app.use('/api/professeurs', require('./routes/professeurs'));
 app.use('/api/parametres',  require('./routes/parametres'));
 app.use('/api/annexes',    require('./routes/annexes'));
+app.use('/api/annees',     require('./routes/annees'));
 
 app.use((err, req, res, next) => {
   console.error(err.message);

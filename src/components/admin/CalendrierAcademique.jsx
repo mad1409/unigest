@@ -22,7 +22,7 @@ export default function CalendrierAcademique({ data }) {
   const [viewMode,   setViewMode]   = useState("liste");
   const [moisActif,  setMoisActif]  = useState(new Date().getMonth());
   const [form,       setForm]       = useState({
-    titre:"", type:"rentree", dateDebut:"", dateFin:"", description:"",
+    titre:"", type:"rentree", dateDebut:"", dateFin:"", description:"", filiereId:"",
   });
 
   useEffect(() => { charger(); }, [annee]);
@@ -37,7 +37,7 @@ export default function CalendrierAcademique({ data }) {
   }
 
   function openNew() {
-    setForm({ titre:"", type:"rentree", dateDebut:"", dateFin:"", description:"" });
+    setForm({ titre:"", type:"rentree", dateDebut:"", dateFin:"", description:"", filiereId:"" });
     setEditing(null);
     setModal(true);
   }
@@ -48,6 +48,7 @@ export default function CalendrierAcademique({ data }) {
       type: e.type,
       dateDebut: e.date_debut?.split("T")[0] || "",
       dateFin: e.date_fin?.split("T")[0] || "",
+      filiereId: e.filiere_id || "",
       description: e.description || "",
     });
     setEditing(e.id);
@@ -56,6 +57,10 @@ export default function CalendrierAcademique({ data }) {
 
   async function save() {
     if (!form.titre || !form.dateDebut) return;
+    if ((form.type==="rentree"||form.type==="examen") && !form.dateFin) {
+      alert("La date de fin est obligatoire pour ce type d événement");
+      return;
+    }
     try {
       const payload = { ...form, anneeAcademique: annee };
       if (editing) await api.updateEvenement(editing, payload);
@@ -267,10 +272,27 @@ export default function CalendrierAcademique({ data }) {
                   <input type="date" style={inp} value={form.dateDebut} onChange={e=>setForm({...form,dateDebut:e.target.value})}/>
                 </div>
                 <div>
-                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Date fin</label>
-                  <input type="date" style={inp} value={form.dateFin} onChange={e=>setForm({...form,dateFin:e.target.value})}/>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>
+                    Date fin {(form.type==="rentree"||form.type==="examen"||form.type==="vacances") ? "*" : ""}
+                  </label>
+                  <input type="date" style={{...inp,borderColor:(form.type==="rentree"||form.type==="examen")&&!form.dateFin?"#ef4444":undefined}} value={form.dateFin} onChange={e=>setForm({...form,dateFin:e.target.value})}/>
+                  {(form.type==="rentree"||form.type==="examen")&&!form.dateFin&&(
+                    <div style={{fontSize:10,color:"#ef4444",marginTop:3}}>Obligatoire pour ce type</div>
+                  )}
                 </div>
               </div>
+              {/* Filières pour examens */}
+              {form.type==="examen" && (
+                <div>
+                  <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Classe / Filière concernée</label>
+                  <select style={{...inp,cursor:"pointer"}} value={form.filiereId||""} onChange={e=>setForm({...form,filiereId:e.target.value})}>
+                    <option value="">-- Toutes les filières --</option>
+                    {(data?.filieres||[]).map(f=>(
+                      <option key={f.id} value={f.id}>{f.code} — {f.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Description</label>
                 <textarea style={{...inp,minHeight:70,resize:"vertical"}} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Détails..."/>

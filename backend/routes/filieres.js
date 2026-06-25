@@ -7,14 +7,20 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const {code,name,cycle}=req.body;
-  try { res.json((await pool.query('INSERT INTO filieres(code,name,cycle) VALUES($1,$2,$3) RETURNING *',[code,name,cycle||"Licence"])).rows[0]); }
+  const {code,name,cycle,domaine}=req.body;
+  try { res.json((await pool.query(
+    'INSERT INTO filieres(code,name,cycle,domaine) VALUES($1,$2,$3,$4) RETURNING *',
+    [code,name,cycle||"Licence",domaine||"Technique"]
+  )).rows[0]); }
   catch(e){ res.status(500).json({error:e.message}); }
 });
 
 router.put('/:id', async (req, res) => {
-  const {code,name,cycle}=req.body;
-  try { res.json((await pool.query('UPDATE filieres SET code=$1,name=$2,cycle=$3 WHERE id=$4 RETURNING *',[code,name,cycle||"Licence",req.params.id])).rows[0]); }
+  const {code,name,cycle,domaine}=req.body;
+  try { res.json((await pool.query(
+    'UPDATE filieres SET code=$1,name=$2,cycle=$3,domaine=$4 WHERE id=$5 RETURNING *',
+    [code,name,cycle||"Licence",domaine||"Technique",req.params.id]
+  )).rows[0]); }
   catch(e){ res.status(500).json({error:e.message}); }
 });
 

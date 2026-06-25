@@ -33,12 +33,12 @@ router.get('/public', async (req, res) => {
 
 // POST — créer un événement
 router.post('/', auth, adminOrSurv, async (req, res) => {
-  const { titre, type, dateDebut, dateFin, description, anneeAcademique } = req.body;
+  const { titre, type, dateDebut, dateFin, description, anneeAcademique, filiereId } = req.body;
   try {
     const r = await pool.query(
-      `INSERT INTO calendrier (titre, type, date_debut, date_fin, description, annee_academique)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [titre, type||'autre', dateDebut, dateFin||dateDebut, description||null, anneeAcademique||'2025/2026']
+      `INSERT INTO calendrier (titre, type, date_debut, date_fin, description, annee_academique, filiere_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [titre, type||'autre', dateDebut, dateFin||dateDebut, description||null, anneeAcademique||'2025/2026', filiereId||null]
     );
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -46,12 +46,12 @@ router.post('/', auth, adminOrSurv, async (req, res) => {
 
 // PUT — modifier
 router.put('/:id', auth, adminOrSurv, async (req, res) => {
-  const { titre, type, dateDebut, dateFin, description } = req.body;
+  const { titre, type, dateDebut, dateFin, description, filiereId } = req.body;
   try {
     const r = await pool.query(
-      `UPDATE calendrier SET titre=$1, type=$2, date_debut=$3, date_fin=$4, description=$5
-       WHERE id=$6 RETURNING *`,
-      [titre, type, dateDebut, dateFin||dateDebut, description||null, req.params.id]
+      `UPDATE calendrier SET titre=$1, type=$2, date_debut=$3, date_fin=$4, description=$5, filiere_id=$6
+       WHERE id=$7 RETURNING *`,
+      [titre, type, dateDebut, dateFin||dateDebut, description||null, filiereId||null, req.params.id]
     );
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: e.message }); }
